@@ -92,6 +92,7 @@ most commonly-present types, to reduce taps for the typical case.
 | Auth stand-in | Hardcoded `user_id` constant, defined once in `/lib` | Matches the Phase 0 schema decision; avoids blocking this phase on picking/wiring an auth provider |
 | Age collection timing | Deferred entirely out of onboarding | Progressive profiling — asking "how old" upfront adds friction before any value has been shown; better asked in context later |
 | Onboarding step count | 2 steps, not 3 | The original UX sketch had a third "age" step; cut per the above, keeps onboarding to the two steps that actually block generating a task list later |
+| Zero appliances selected | Prevented, with an inline message ("Select at least one appliance to continue.") | A house with no appliances has nothing for the rules engine to generate tasks from, so there's no useful state to save; simpler to block it up front than special-case an empty-appliance house later |
 
 ## Acceptance criteria
 
