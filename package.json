@@ -9,7 +9,8 @@
     "lint": "eslint",
     "type-check": "next typegen && tsc --noEmit",
     "db:migrate": "tsx --env-file=.env.local db/migrate.ts",
-    "db:seed": "tsx --env-file=.env.local db/seed.ts"
+    "db:seed": "tsx --env-file=.env.local db/seed.ts",
+    "test": "tsx --test lib/rules-engine/*.test.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
