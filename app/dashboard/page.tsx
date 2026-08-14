@@ -1,8 +1,6 @@
+import { ApplianceCard } from "./appliance-card";
 import { CategoryTiles } from "./category-tiles";
-import { CaughtUpState } from "./caught-up-state";
 import { getDashboardData } from "./data";
-import { NeedsAttentionList } from "./needs-attention-list";
-import { NoContentNote } from "./no-content-note";
 
 export default async function DashboardPage() {
   const data = await getDashboardData();
@@ -15,21 +13,19 @@ export default async function DashboardPage() {
     );
   }
 
-  const { house, needsAttention, nextUpcoming, noContentTypes } = data;
+  const { house, cards } = data;
 
   return (
     <main className="flex flex-col gap-8 p-8 max-w-2xl">
       <h1 className="text-xl font-semibold">{house.address}</h1>
 
-      {needsAttention.length === 0 ? (
-        <CaughtUpState nextUpcoming={nextUpcoming} />
-      ) : (
-        <NeedsAttentionList items={needsAttention} />
-      )}
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {cards.map((card) => (
+          <ApplianceCard key={card.applianceInstanceId} card={card} />
+        ))}
+      </section>
 
       <CategoryTiles />
-
-      {noContentTypes.length > 0 && <NoContentNote items={noContentTypes} />}
     </main>
   );
 }

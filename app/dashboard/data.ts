@@ -1,50 +1,40 @@
 import { sql } from "@/lib/db";
 import { computeApplianceStatus } from "@/lib/rules-engine/compute";
+import { computeApplianceRollup, type ApplianceRollup } from "@/lib/rules-engine/rollup";
 import type {
   ApplianceInstanceInput,
   Criticality,
   MaintenanceRuleInput,
-  RuleComputation,
   RuleType,
   TaskEventInput,
   TaskEventType,
 } from "@/lib/rules-engine/types";
 import { CURRENT_USER_ID } from "@/lib/user";
 
-export type NeedsAttentionItem = {
-  computation: RuleComputation;
+export type ApplianceCard = {
   applianceInstanceId: string;
-  applianceDisplayName: string;
-};
-
-export type NoContentApplianceType = {
   applianceTypeId: string;
   applianceDisplayName: string;
+  rollup: ApplianceRollup;
 };
 
 export type DashboardData =
   | { house: null }
-  | {
-      house: { id: string; address: string };
-      needsAttention: NeedsAttentionItem[];
-      nextUpcoming: NeedsAttentionItem | null;
-      noContentTypes: NoContentApplianceType[];
-    };
+  | { house: { id: string; address: string }; cards: ApplianceCard[] };
 
-const NEEDS_ATTENTION_STATUS_RANK: Record<string, number> = {
-  overdue: 0,
-  due_soon: 1,
-  unscheduled: 2,
+const ROLLUP_COLOR_RANK: Record<ApplianceRollup["color"], number> = {
+  red: 0,
+  yellow: 1,
+  green: 2,
+  gray: 3,
 };
 
 /**
  * Thin wrapper (per the Phase 2a "Function contract" note) around
- * computeApplianceStatus: fetches the current house's active appliance
- * instances plus their maintenance_rules and task_events, runs the pure
- * compute function per instance, and shapes the result for the dashboard
- * — the needs-attention list (sorted per "Dashboard sections & sorting" in
- * docs/requirements/phase-2b-dashboard.md), the next on_track item for the
- * caught-up state, and the no-content appliance types.
+ * computeApplianceStatus + computeApplianceRollup: fetches the current
+ * house's active appliance instances plus their maintenance_rules and
+ * task_events, runs the pure compute + rollup functions per instance, and
+ * returns one card per instance for the Phase 2c grid.
  */
 export async function getDashboardData(): Promise<DashboardData> {
   const houses = await sql`
@@ -123,11 +113,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     }[]
   );
 
-  const needsAttention: NeedsAttentionItem[] = [];
-  const onTrackItems: NeedsAttentionItem[] = [];
-  const noContentTypeIds = new Set<string>();
-
-  for (const row of instances) {
+  const cards: ApplianceCard[] = instances.map((row) => {
     const applianceDisplayName =
       displayNameById.get(row.appliance_type_id) ?? row.appliance_type_id;
 
@@ -142,43 +128,22 @@ export async function getDashboardData(): Promise<DashboardData> {
     const events = eventsByInstance.get(row.id) ?? [];
 
     const result = computeApplianceStatus(instanceInput, events, rules);
+    const rollup = computeApplianceRollup(result);
 
-    if (!result.hasContent) {
-      noContentTypeIds.add(row.appliance_type_id);
-      continue;
-    }
+    return {
+      applianceInstanceId: row.id,
+      applianceTypeId: row.appliance_type_id,
+      applianceDisplayName,
+      rollup,
+    };
+  });
 
-    for (const computation of result.rules) {
-      const item: NeedsAttentionItem = {
-        computation,
-        applianceInstanceId: row.id,
-        applianceDisplayName,
-      };
+  // Not specified by the doc for the grid — worst-status-first (matching
+  // the urgency-first ordering established in Phase 2b), alphabetical
+  // within a color as a tiebreaker.
+  cards.sort(compareCards);
 
-      if (computation.status in NEEDS_ATTENTION_STATUS_RANK) {
-        needsAttention.push(item);
-      } else if (computation.status === "on_track") {
-        onTrackItems.push(item);
-      }
-      // dismissed, snoozed, lifespan_notice: not surfaced anywhere in this
-      // phase's UI (lifespan display and task actions come later).
-    }
-  }
-
-  needsAttention.sort(compareNeedsAttention);
-  onTrackItems.sort((a, b) => (a.computation.dueDate ?? "").localeCompare(b.computation.dueDate ?? ""));
-
-  const noContentTypes: NoContentApplianceType[] = Array.from(noContentTypeIds).map((id) => ({
-    applianceTypeId: id,
-    applianceDisplayName: displayNameById.get(id) ?? id,
-  }));
-
-  return {
-    house,
-    needsAttention,
-    nextUpcoming: onTrackItems[0] ?? null,
-    noContentTypes,
-  };
+  return { house, cards };
 }
 
 function groupRulesByApplianceType(
@@ -242,23 +207,9 @@ function groupEventsByInstance(
   return map;
 }
 
-function compareNeedsAttention(a: NeedsAttentionItem, b: NeedsAttentionItem): number {
-  const rankA = NEEDS_ATTENTION_STATUS_RANK[a.computation.status];
-  const rankB = NEEDS_ATTENTION_STATUS_RANK[b.computation.status];
+function compareCards(a: ApplianceCard, b: ApplianceCard): number {
+  const rankA = ROLLUP_COLOR_RANK[a.rollup.color];
+  const rankB = ROLLUP_COLOR_RANK[b.rollup.color];
   if (rankA !== rankB) return rankA - rankB;
-
-  if (a.computation.status === "unscheduled") {
-    if (a.computation.criticality !== b.computation.criticality) {
-      return a.computation.criticality === "safety" ? -1 : 1;
-    }
-    return a.computation.rule.taskName.localeCompare(b.computation.rule.taskName);
-  }
-
-  // overdue / due_soon: earlier due date first, doc doesn't specify a
-  // secondary sort but this keeps the most urgent items on top within
-  // each group, consistent with the Goal section's "sorted by urgency."
-  const dueA = a.computation.dueDate ?? "";
-  const dueB = b.computation.dueDate ?? "";
-  if (dueA !== dueB) return dueA.localeCompare(dueB);
-  return a.computation.rule.taskName.localeCompare(b.computation.rule.taskName);
+  return a.applianceDisplayName.localeCompare(b.applianceDisplayName);
 }
