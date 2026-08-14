@@ -56,6 +56,13 @@ evaluated when the appliance instance has real age data (not
 `'unknown'`). If age is unknown, lifespan rules simply don't produce output
 for that instance — not an error, not a fallback guess.
 
+## Decision log
+
+| Decision | Choice | Why |
+|---|---|---|
+| Fourth recurring status: `on_track` | Added, alongside unscheduled/due_soon/overdue | The three-state model below only specified conditions for `due_soon` and `overdue`, leaving no defined state for a task recently completed with plenty of runway left — forcing it into `due_soon` would show false urgency. Caught during implementation, not in the original design pass. |
+| Lifespan rule skip condition | Skips both when age is unknown AND when known age is below `min_age_range` | The Function Contract text only explicitly said "skip when unknown," but the actual intent (a 3-year-old roof shouldn't get a "plan for replacement" notice) requires skipping below-threshold known ages too. Implemented as a rank comparison against `min_age_range`, so ranged thresholds like "8-15, 15+" work as "at or above the lower bound" with no extra schema. |
+
 ## The three-state model
 
 Every recurring rule, for a given appliance instance, resolves to one of:
