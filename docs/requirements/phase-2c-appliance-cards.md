@@ -101,6 +101,12 @@ The current-status templated sentence (e.g. "Right now, your filter is
 overdue for a change...") appends after the paragraph, not blended into
 it — keeps the static content stable and the dynamic part isolated.
 
+## Decision log
+
+| Decision | Choice | Why |
+|---|---|---|
+| `lifespan_notice` in the rollup | Inert — present in an appliance's rule results but doesn't affect color or the ring | The Status model's priority order only names `overdue`/`unscheduled`/else-green plus `due_soon` for the ring; it never mentions `lifespan_notice`. Consistent with lifespan rules being framed elsewhere in the docs as informational nudges, not urgency signals — they shouldn't turn a card yellow/red or trigger the ring. |
+
 ## Acceptance criteria
 
 - [ ] Dashboard renders one card per appliance instance, correct icon,
