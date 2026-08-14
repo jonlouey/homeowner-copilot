@@ -1,3 +1,4 @@
+import { CategoryTiles } from "./category-tiles";
 import { CaughtUpState } from "./caught-up-state";
 import { getDashboardData } from "./data";
 import { NeedsAttentionList } from "./needs-attention-list";
@@ -25,6 +26,8 @@ export default async function DashboardPage() {
       ) : (
         <NeedsAttentionList items={needsAttention} />
       )}
+
+      <CategoryTiles />
 
       {noContentTypes.length > 0 && <NoContentNote items={noContentTypes} />}
     </main>
