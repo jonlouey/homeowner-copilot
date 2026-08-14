@@ -44,7 +44,27 @@ function lifespanRule(overrides: Partial<MaintenanceRuleInput> = {}): Maintenanc
 }
 
 function completedEvent(ruleId: string, eventDate: string): TaskEventInput {
-  return { id: `event-${ruleId}-${eventDate}`, ruleId, eventType: "completed", eventDate };
+  return {
+    id: `event-${ruleId}-${eventDate}`,
+    ruleId,
+    eventType: "completed",
+    eventDate,
+    snoozeUntil: null,
+  };
+}
+
+function dismissedEvent(ruleId: string, eventDate: string): TaskEventInput {
+  return {
+    id: `event-${ruleId}-${eventDate}`,
+    ruleId,
+    eventType: "dismissed",
+    eventDate,
+    snoozeUntil: null,
+  };
+}
+
+function snoozedEvent(ruleId: string, eventDate: string, snoozeUntil: string): TaskEventInput {
+  return { id: `event-${ruleId}-${eventDate}`, ruleId, eventType: "snoozed", eventDate, snoozeUntil };
 }
 
 describe("computeApplianceStatus", () => {
@@ -58,18 +78,17 @@ describe("computeApplianceStatus", () => {
     ]);
   });
 
-  test("recurring rule with only snoozed/dismissed events is still unscheduled", () => {
-    // Snooze/dismiss handling is explicitly out of scope for Phase 2a's
-    // compute logic — only 'completed' events move a rule out of
-    // unscheduled.
+  test("a dismissed event (the most recent) overrides an otherwise-unscheduled rule", () => {
+    // Phase 2b: dismiss is task-scoped and can apply before a task is ever
+    // completed (e.g. "doesn't apply to my water heater").
     const rule = recurringRule();
     const events: TaskEventInput[] = [
-      { id: "e1", ruleId: rule.id, eventType: "snoozed", eventDate: "2026-05-01T00:00:00Z" },
-      { id: "e2", ruleId: rule.id, eventType: "dismissed", eventDate: "2026-05-02T00:00:00Z" },
+      snoozedEvent(rule.id, "2026-05-01T00:00:00Z", "2026-05-15"),
+      dismissedEvent(rule.id, "2026-05-02T00:00:00Z"),
     ];
     const result = computeApplianceStatus(instance(), events, [rule], { now: NOW });
 
-    assert.equal(result.rules[0].status, "unscheduled");
+    assert.equal(result.rules[0].status, "dismissed");
   });
 
   test("recurring rule due within the urgency window is due_soon", () => {
@@ -207,5 +226,96 @@ describe("computeApplianceStatus", () => {
       result.rules.find((r) => r.rule.id === "rule-lifespan")?.status,
       "lifespan_notice"
     );
+  });
+
+  describe("snooze/dismiss precedence (Phase 2b)", () => {
+    test("a dismissed event hides the rule regardless of what its status would otherwise be", () => {
+      const rule = recurringRule({ frequencyMonths: 3 });
+      const events = [
+        completedEvent(rule.id, "2026-01-01T00:00:00Z"), // would be overdue on its own
+        dismissedEvent(rule.id, "2026-06-01T00:00:00Z"),
+      ];
+      const result = computeApplianceStatus(instance(), events, [rule], { now: NOW });
+
+      assert.equal(result.rules[0].status, "dismissed");
+      assert.equal(result.rules[0].dueDate, null);
+    });
+
+    test("an active snooze (snooze_until today or later) suppresses the rule's own status", () => {
+      const rule = recurringRule({ frequencyMonths: 3 });
+      const events = [
+        completedEvent(rule.id, "2026-01-01T00:00:00Z"), // would be overdue on its own
+        snoozedEvent(rule.id, "2026-06-05T00:00:00Z", "2026-06-15"), // snooze_until == today
+      ];
+      const result = computeApplianceStatus(instance(), events, [rule], { now: NOW });
+
+      assert.equal(result.rules[0].status, "snoozed");
+      assert.equal(result.rules[0].dueDate, null);
+    });
+
+    test("an expired snooze (snooze_until has passed) falls back to normal completion-based status", () => {
+      const rule = recurringRule({ frequencyMonths: 3 });
+      const events = [
+        completedEvent(rule.id, "2026-01-01T00:00:00Z"), // due 2026-04-01 -> overdue
+        snoozedEvent(rule.id, "2026-02-01T00:00:00Z", "2026-05-01"), // expired before NOW
+      ];
+      const result = computeApplianceStatus(instance(), events, [rule], { now: NOW });
+
+      assert.equal(result.rules[0].status, "overdue");
+      assert.equal(result.rules[0].dueDate, "2026-04-01");
+    });
+
+    test("a completed event after a dismissal supersedes it", () => {
+      // "Most recent event of any type" — a later completion is real
+      // history and takes precedence over an earlier dismiss.
+      const rule = recurringRule({ frequencyMonths: 3 });
+      const events = [
+        dismissedEvent(rule.id, "2026-01-01T00:00:00Z"),
+        completedEvent(rule.id, "2026-06-10T00:00:00Z"), // due 2026-09-10, on_track
+      ];
+      const result = computeApplianceStatus(instance(), events, [rule], { now: NOW });
+
+      assert.equal(result.rules[0].status, "on_track");
+    });
+
+    test("dismiss/snooze events for a different rule don't affect this one", () => {
+      const rule = recurringRule({ id: "rule-a", frequencyMonths: 3 });
+      const events = [dismissedEvent("rule-b", "2026-06-01T00:00:00Z")];
+      const result = computeApplianceStatus(instance(), events, [rule], { now: NOW });
+
+      assert.equal(result.rules[0].status, "unscheduled");
+    });
+
+    test("a dismissed lifespan rule that would otherwise fire is hidden", () => {
+      const rule = lifespanRule({ minAgeRange: "15+" });
+      const events = [dismissedEvent(rule.id, "2026-01-01T00:00:00Z")];
+      const result = computeApplianceStatus(instance({ ageRange: "15+" }), events, [rule], {
+        now: NOW,
+      });
+
+      assert.equal(result.rules[0].status, "dismissed");
+    });
+
+    test("an active snooze on a lifespan rule that would otherwise fire suppresses it", () => {
+      const rule = lifespanRule({ minAgeRange: "15+" });
+      const events = [snoozedEvent(rule.id, "2026-06-01T00:00:00Z", "2026-12-01")];
+      const result = computeApplianceStatus(instance({ ageRange: "15+" }), events, [rule], {
+        now: NOW,
+      });
+
+      assert.equal(result.rules[0].status, "snoozed");
+    });
+
+    test("a dismiss event does not resurrect a lifespan rule that isn't applicable yet", () => {
+      // Dismiss/snooze override a rule's status — they don't make an
+      // inapplicable rule (age below threshold) applicable.
+      const rule = lifespanRule({ minAgeRange: "15+" });
+      const events = [dismissedEvent(rule.id, "2026-01-01T00:00:00Z")];
+      const result = computeApplianceStatus(instance({ ageRange: "3-7" }), events, [rule], {
+        now: NOW,
+      });
+
+      assert.deepEqual(result.rules, []);
+    });
   });
 });

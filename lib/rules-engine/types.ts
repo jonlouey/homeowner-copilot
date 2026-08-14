@@ -20,6 +20,8 @@ export type TaskEventInput = {
   ruleId: string;
   eventType: TaskEventType;
   eventDate: string;
+  // Only meaningful when eventType is 'snoozed'.
+  snoozeUntil: string | null;
 };
 
 export type MaintenanceRuleInput = {
@@ -37,7 +39,9 @@ export type MaintenanceRuleInput = {
 };
 
 export type RecurringRuleStatus = "unscheduled" | "on_track" | "due_soon" | "overdue";
-export type RuleStatus = RecurringRuleStatus | "lifespan_notice";
+// 'dismissed' and 'snoozed' are event-driven overrides (Phase 2b) that can
+// apply on top of either rule type's own status.
+export type RuleStatus = RecurringRuleStatus | "lifespan_notice" | "dismissed" | "snoozed";
 
 export type RuleComputation = {
   rule: MaintenanceRuleInput;

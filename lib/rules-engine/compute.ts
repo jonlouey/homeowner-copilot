@@ -33,6 +33,15 @@ export type ComputeApplianceStatusOptions = {
  * to `{ hasContent: false }`, distinct from an instance whose rules just
  * don't happen to produce any entries (e.g. a type with only lifespan
  * rules on an instance with unknown age).
+ *
+ * Phase 2b addition: snoozed/dismissed events take precedence over a
+ * rule's own status (see docs/requirements/phase-2b-dashboard.md, "Task
+ * action semantics") — resolved from the most recent event of *any* type
+ * for that rule, not just 'completed'. This override only applies to
+ * rules that would otherwise produce an entry: a lifespan rule that isn't
+ * applicable yet (age below its threshold) stays omitted regardless of
+ * event history — dismiss/snooze act on something that would otherwise be
+ * shown, not on something that was never shown in the first place.
  */
 export function computeApplianceStatus(
   instance: ApplianceInstanceInput,
@@ -51,15 +60,48 @@ export function computeApplianceStatus(
 
   for (const rule of rules) {
     if (rule.ruleType === "lifespan") {
-      const computation = computeLifespanRule(rule, instance);
-      if (computation) computations.push(computation);
+      const base = computeLifespanRule(rule, instance);
+      if (!base) continue;
+
+      const override = resolveEventOverride(rule, events, now);
+      computations.push(override ?? base);
       continue;
     }
 
-    computations.push(computeRecurringRule(rule, events, now, urgencyWindowDays));
+    const override = resolveEventOverride(rule, events, now);
+    computations.push(override ?? computeRecurringRule(rule, events, now, urgencyWindowDays));
   }
 
   return { hasContent: true, rules: computations };
+}
+
+/**
+ * Implements the four-case precedence from "Task action semantics":
+ * dismissed always wins, an active snooze wins, an expired snooze falls
+ * through (as if it never happened), and a 'completed' event or no events
+ * at all also falls through to the rule's own status logic.
+ */
+function resolveEventOverride(
+  rule: MaintenanceRuleInput,
+  events: TaskEventInput[],
+  now: Date
+): RuleComputation | null {
+  const latest = mostRecentEvent(rule.id, events);
+  if (!latest) return null;
+
+  if (latest.eventType === "dismissed") {
+    return { rule, status: "dismissed", dueDate: null, criticality: rule.criticality };
+  }
+
+  if (latest.eventType === "snoozed") {
+    const isActive = latest.snoozeUntil !== null && toIsoDate(now) <= latest.snoozeUntil;
+    if (isActive) {
+      return { rule, status: "snoozed", dueDate: null, criticality: rule.criticality };
+    }
+    return null; // expired (or malformed) snooze — fall through
+  }
+
+  return null; // latest event is 'completed' — fall through
 }
 
 function computeRecurringRule(
@@ -114,6 +156,19 @@ function mostRecentCompletedEvent(
 
   for (const event of events) {
     if (event.ruleId !== ruleId || event.eventType !== "completed") continue;
+    if (!latest || new Date(event.eventDate) > new Date(latest.eventDate)) {
+      latest = event;
+    }
+  }
+
+  return latest;
+}
+
+function mostRecentEvent(ruleId: string, events: TaskEventInput[]): TaskEventInput | null {
+  let latest: TaskEventInput | null = null;
+
+  for (const event of events) {
+    if (event.ruleId !== ruleId) continue;
     if (!latest || new Date(event.eventDate) > new Date(latest.eventDate)) {
       latest = event;
     }
