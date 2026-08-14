@@ -49,3 +49,44 @@ Two gotchas worth remembering:
   `.next/` directory rather than shipping them statically, so plain
   `tsc --noEmit` fails on a clean checkout. CI's `type-check` script runs
   `next typegen && tsc --noEmit` to fix that.
+
+## 2026-08-13 — Phase 1: onboarding flow
+
+- Built the onboarding flow at `/onboarding` per
+  `docs/requirements/phase-1-onboarding.md`: a single client-side component
+  (`app/onboarding/onboarding-flow.tsx`) holding local step state across two
+  steps, with a third confirmation step shown after successful submission.
+  No partial saves — nothing is written to the database until the final
+  submit.
+- Step 1 (`house-details-step.tsx`) collects address, ZIP, and house type,
+  with client-side validation only (no server round-trip). Step 2
+  (`appliance-picker-step.tsx`) is a chip-style multi-select across the 23
+  seeded `appliance_types`, grouped by category (Systems, Exterior,
+  Appliances, Safety).
+- House-type filtering hides appliance types that don't apply per the
+  table in the requirements doc (e.g. `roof`, `gutters`, `sump_pump`
+  hidden for condos), implemented as a static lookup in
+  `app/onboarding/filtering.ts`. `hvac`, `water_heater`, and
+  `electrical_panel` are pre-checked by default, filtered against whatever
+  the current house type still shows.
+- Submission (`app/onboarding/actions.ts`, `submitOnboarding`) inserts the
+  `houses` row and one `appliance_instances` row per selected type
+  together in a single Postgres transaction via the Neon HTTP driver's
+  `sql.transaction([...])`, so a partial failure (e.g. a bad
+  `appliance_type_id`) rolls back the whole thing — verified directly by
+  forcing a foreign-key violation and confirming no `houses` row was left
+  behind.
+- Zero appliances selected is blocked client-side with an inline message
+  rather than allowed through — decision recorded in the Phase 1
+  requirements doc's decision log.
+
+One implementation detail worth remembering: `sql.transaction()` sends all
+queries in the batch over HTTP as one *non-interactive* transaction, so a
+later query can't reference an earlier query's result (no reading back a
+generated `id` mid-transaction). Worked around this by generating the
+`houses.id` with `crypto.randomUUID()` in the server action before the
+transaction starts, then reusing that same id as the FK for every
+`appliance_instances` insert in the same batch.
+
+Deploy verification on the live Vercel URL and updating the acceptance
+checklist in the requirements doc are still outstanding for Phase 1.
