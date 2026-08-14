@@ -34,6 +34,47 @@ export async function dismissTask(applianceInstanceId: string, ruleId: string) {
   refresh();
 }
 
+const AGE_RANGES = ["0-2", "3-7", "8-15", "15+"] as const;
+
+// The "add install date / age" progressive-profiling prompt, deferred
+// since onboarding (see docs/requirements/phase-2c-appliance-cards.md,
+// "History"). Accepts either a coarse age_range pick or a precise
+// install_date — the latter also derives an age_range bucket, since
+// compute() only reads age_range today (install_date is reserved for a
+// more precise future calculation).
+export async function updateApplianceAge(applianceInstanceId: string, formData: FormData) {
+  const installDateInput = String(formData.get("installDate") ?? "").trim();
+  const ageRangeInput = String(formData.get("ageRange") ?? "").trim();
+
+  if (installDateInput) {
+    const ageRange = deriveAgeRangeFromInstallDate(installDateInput);
+    await sql`
+      update appliance_instances
+      set age_range = ${ageRange}, install_date = ${installDateInput}::date
+      where id = ${applianceInstanceId}
+    `;
+  } else if ((AGE_RANGES as readonly string[]).includes(ageRangeInput)) {
+    await sql`
+      update appliance_instances
+      set age_range = ${ageRangeInput}
+      where id = ${applianceInstanceId}
+    `;
+  } else {
+    return;
+  }
+
+  refresh();
+}
+
+function deriveAgeRangeFromInstallDate(installDateIso: string): (typeof AGE_RANGES)[number] {
+  const installed = new Date(installDateIso);
+  const years = (Date.now() - installed.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+  if (years < 3) return "0-2";
+  if (years < 8) return "3-7";
+  if (years < 15) return "8-15";
+  return "15+";
+}
+
 function computeSnoozeUntil(duration: SnoozeDuration): string {
   const result = new Date();
   if (duration === "1_week") {

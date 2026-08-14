@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { APPLIANCE_ICONS, DEFAULT_APPLIANCE_ICON } from "./appliance-icons";
 import type { ApplianceCard as ApplianceCardData } from "./data";
 
@@ -13,7 +14,8 @@ export function ApplianceCard({ card }: { card: ApplianceCardData }) {
   const Icon = APPLIANCE_ICONS[card.applianceTypeId] ?? DEFAULT_APPLIANCE_ICON;
 
   return (
-    <div
+    <Link
+      href={`/dashboard/appliances/${card.applianceInstanceId}`}
       className={`flex flex-col gap-3 rounded border px-3 py-3 ${COLOR_CLASSES[rollup.color]} ${
         rollup.hasRing ? "ring-2 ring-amber-400 ring-offset-1" : ""
       }`}
@@ -23,6 +25,6 @@ export function ApplianceCard({ card }: { card: ApplianceCardData }) {
       </div>
       <span className="text-sm font-medium text-gray-900">{card.applianceDisplayName}</span>
       <span className="text-xs font-medium">{rollup.cardCopy}</span>
-    </div>
+    </Link>
   );
 }
