@@ -61,6 +61,13 @@ colors: {
 }
 ```
 
+> **Implemented differently:** this project uses Tailwind v4, which has no
+> `tailwind.config.ts` file — there isn't one in this repo. These tokens
+> live in a `@theme` block in `app/globals.css` instead, which is v4's
+> equivalent mechanism (and also where the CSS variables get emitted for
+> direct use outside of Tailwind utility classes, e.g. in `body`'s base
+> styles).
+
 ## Typography
 
 Three-role pairing, loaded via `next/font/google` (all open-source,
@@ -119,6 +126,14 @@ tokens applied to its existing outputs:
 | Green (all good) | `pine` |
 | Gray (no content) | `faint` |
 | Amber ring overlay | `warn`, as a ring/outline rather than a fill |
+
+**Dark mode is currently unsupported.** The scaffold's original
+`prefers-color-scheme: dark` override (a near-black background swap) was
+removed when these tokens were applied, since it directly conflicted with
+the light-canvas direction above — leaving it in place would have reverted
+the app to an undesigned dark palette for anyone with OS dark mode on. No
+dark variant has been designed yet; this system is light-canvas only for
+now.
 
 ## Rollout scope
 

@@ -1,15 +1,22 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Color and font tokens per docs/designs/design-system.md. Light-canvas
+   system by deliberate design direction — no dark-mode variant defined
+   there, so the previous prefers-color-scheme swap has been dropped
+   rather than left to clash with these tokens. */
+@theme {
+  --color-canvas: #FAFAF8;
+  --color-ink: #141412;
+  --color-pine: #1B4332;
+  --color-hairline: #E4E2DC;
+  --color-muted: #6B6B63;
+  --color-faint: #B4B2A9;
+  --color-danger: #E24B4A;
+  --color-warn: #BA7517;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-display: var(--font-space-grotesk), sans-serif;
+  --font-body: var(--font-public-sans), sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), monospace;
 }
 
 html {
@@ -26,9 +33,9 @@ body {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-ink);
+  background: var(--color-canvas);
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -42,10 +49,4 @@ body {
 a {
   color: inherit;
   text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
 }
