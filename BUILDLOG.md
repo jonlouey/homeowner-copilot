@@ -135,3 +135,121 @@ specified — both recorded in the requirements doc's decision log:
 
 Not yet done: wiring the compute function into an API route or UI (Phase
 2b), and rule content for the remaining ~18 appliance types (Phase 3).
+
+## 2026-08-14 — Phase 2b: dashboard, task actions, snooze/dismiss logic
+
+- Built the dashboard route (`app/dashboard/page.tsx`, `data.ts`) per
+  `docs/requirements/phase-2b-dashboard.md` — fetches the most-recently-
+  created house for `CURRENT_USER_ID`, its active `appliance_instances`,
+  and runs `computeApplianceStatus` per instance to build a needs-
+  attention list sorted `overdue` → `due_soon` → `unscheduled` (with
+  `safety`-criticality rules sorted above `routine` ones within
+  `unscheduled`). Added a caught-up/empty state (checkmark, message, and a
+  faint "next up" hint pulled from the nearest `on_track` item) and a
+  separate no-content note for appliance types with zero rule content.
+- Extended the Phase 2a compute function to handle snooze/dismiss
+  precedence (`lib/rules-engine/types.ts`, `compute.ts`): added
+  `snoozeUntil` to `TaskEventInput` and `'dismissed'`/`'snoozed'` to
+  `RuleStatus`. For each rule, the most recent event of *any* type (not
+  just `completed`) now resolves status in priority order — a dismissed
+  event always wins, an active snooze (`snooze_until` today or later)
+  wins, an expired snooze falls through as if it never happened, and a
+  `completed` event or no events at all falls through to the unchanged
+  Phase 2a logic. Covered by 8 new unit tests (22 total for `compute.ts`).
+- Wired up the three task actions — Mark done, Snooze (1 week / 1 month /
+  until next season, the last resolving to a fixed +3 months per the doc),
+  and "doesn't apply to my [appliance]" — as Server Actions
+  (`app/dashboard/actions.ts`) invoked via native HTML form actions
+  (`task-actions.tsx`: one `<form>` per row, each button pointing at a
+  different bound action via `formAction`). No client components needed
+  anywhere. Each action calls `refresh()` from `next/cache` afterward so
+  the dashboard's Server Component data re-fetches without a full page
+  reload.
+- Added the category tile stubs (`category-tiles.tsx`) — four non-
+  functional tiles (Systems/Exterior/Appliances/Safety), per the doc's
+  explicit allowance to stub the link targets since the appliance list/
+  detail view didn't exist yet.
+- Added a "View your dashboard" link to onboarding's confirmation screen
+  — the first real connection between the two flows.
+
+One bug caught during implementation: Neon's driver returns Postgres
+`date` columns (`snooze_until`) as JS `Date` objects with a timezone-
+shifted value, not plain `YYYY-MM-DD` strings. The snooze/dismiss
+precedence check string-compared `snoozeUntil` directly, so an active
+snooze was silently evaluating as expired — no error, just wrong
+behavior. Fixed by casting the column to text via `to_char(snooze_until,
+'YYYY-MM-DD')` in the query rather than trusting the driver's
+auto-conversion; verified live that an actively-snoozed rule is correctly
+excluded from the needs-attention list afterward.
+
+## 2026-08-15 — Phase 2c: appliance card dashboard and detail page
+
+- Built the rollup aggregation function (`lib/rules-engine/rollup.ts`,
+  `computeApplianceRollup`) per
+  `docs/requirements/phase-2c-appliance-cards.md`'s Status model — reads
+  `computeApplianceStatus()`'s existing output with no changes to
+  `compute.ts` itself. Worst status wins: any `overdue` rule → red; else
+  any `unscheduled` rule → yellow; else green, with an amber ring layered
+  on top of yellow/green (never red) if any rule is `due_soon`.
+  `dismissed`/`snoozed`/`lifespan_notice` rules are excluded from the
+  calculation entirely. 13 unit tests cover all 5 documented card-copy
+  outcomes plus the gray no-content state.
+- Rebuilt the dashboard route as a grid of appliance cards (one per
+  `appliance_instance`), each showing an icon, name, and status badge —
+  replacing Phase 2b's flat needs-attention list, which is now retired
+  (`needs-attention-list.tsx`, `caught-up-state.tsx`, `no-content-note.tsx`
+  deleted; their logic is superseded by the rollup + card grid).
+  `task-actions.tsx` and `actions.ts` were kept as-is for reuse. Added
+  `lucide-react` and mapped all 23 seeded `appliance_types` to an icon
+  (`app/dashboard/appliance-icons.tsx`), with a few conceptually related
+  types intentionally sharing one (e.g. `hvac`/`furnace_boiler`/
+  `chimney_fireplace` → Flame, `washer`/`dryer` → WashingMachine).
+- Built the appliance detail page (`app/dashboard/appliances/[instanceId]/`)
+  with its three sections: **Summary** (hand-written contractor-voice
+  paragraph per appliance type, verbatim from the requirements doc's
+  Appendix, for the 5 types with real rule content), **Actions** (reuses
+  `task-actions.tsx`/`actions.ts` unchanged, scoped to just this instance's
+  overdue/due_soon/unscheduled rules), and **History** (a reverse-
+  chronological list of completed `task_events`, plus an install-date/
+  age-range prompt when `age_range` is `'unknown'`). Every dashboard card
+  now links to its instance's detail page.
+- Replaced the Summary section's generic templated status sentence with
+  hand-written contractor-voice phrasing per recurring rule
+  (`rule-headlines.ts`) — a separate overdue/due_soon/unscheduled line for
+  each of the 10 recurring rules (30 lines total), keyed by
+  `(appliance_type_id, task_name)` rather than `maintenance_rules.id` since
+  the id isn't a stable authoring key. The 4 safety-criticality rules (T&P
+  valve, electrical panel inspection, both sump pump rules) carry a light
+  safety nudge in their unscheduled phrasing too, not just overdue,
+  matching their overdue tone. Verified every real `task_name` in the
+  database resolves to a written entry rather than silently falling
+  through to the generic fallback (which still exists, for appliance types
+  beyond the current 5).
+
+Two bugs caught during implementation, both before they reached the user:
+
+- **`snoozeUntil` was hardcoded to `null`** in the detail page's first
+  draft of `data.ts`, instead of being fetched from `task_events` like the
+  main dashboard's `data.ts` already did. Would have silently broken the
+  dismiss/snooze precedence check on the detail page — every snooze would
+  have read as expired. Caught before testing, by re-checking the fetch
+  against the established pattern.
+- **The headline's rule-priority order didn't match the rollup's own
+  Status model.** `pickHeadlineComputation` picked `overdue > due_soon >
+  unscheduled`, but the rollup treats `unscheduled` (yellow) as more
+  severe than `due_soon` (an amber ring on top of yellow/green). A card
+  showing yellow could show a headline about an unrelated, less-severe
+  due_soon task instead of the actual reason for the yellow badge. Caught
+  by live-testing the wired-in headline content against real data — the
+  water heater's headline was naming the due_soon tank flush instead of
+  the unscheduled (and safety-relevant) T&P valve test. Fixed to `overdue
+  > unscheduled > due_soon`, matching `rollup.ts`.
+
+The install-date/age-range prompt (`updateApplianceAge` in `actions.ts`)
+accepts either a coarse `age_range` pick or a precise `install_date`; the
+latter also derives an `age_range` bucket from elapsed years, since
+`computeApplianceStatus` still only reads `age_range` — `install_date`
+remains reserved for a more precise future calculation.
+
+Not yet done: Phase 2c's remaining acceptance criteria — live Vercel
+verification.
