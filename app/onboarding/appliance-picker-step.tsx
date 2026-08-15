@@ -26,6 +26,8 @@ const HOUSE_TYPE_LABELS: Record<HouseDetails["houseType"], string> = {
   other: "home",
 };
 
+const buttonClass = "border border-hairline px-3 py-1.5 text-sm font-medium text-ink hover:bg-hairline disabled:opacity-50";
+
 export function AppliancePickerStep({
   applianceTypes,
   houseDetails,
@@ -85,7 +87,7 @@ export function AppliancePickerStep({
   return (
     <div className="flex flex-col gap-6 max-w-md">
       {hidingSomething && (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted">
           We&apos;ve hidden a few types based on typical {HOUSE_TYPE_LABELS[houseType]}{" "}
           ownership — add anything we missed.
         </p>
@@ -93,7 +95,9 @@ export function AppliancePickerStep({
 
       {groups.map((group) => (
         <fieldset key={group.category} className="flex flex-col gap-2">
-          <legend className="text-sm font-medium">{CATEGORY_LABELS[group.category]}</legend>
+          <legend className="font-mono text-xs uppercase tracking-wide text-muted">
+            {CATEGORY_LABELS[group.category]}
+          </legend>
           <div className="flex flex-wrap gap-2">
             {group.items.map((type) => {
               const isSelected = selected.has(type.id);
@@ -103,10 +107,10 @@ export function AppliancePickerStep({
                   type="button"
                   aria-pressed={isSelected}
                   onClick={() => toggle(type.id)}
-                  className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                  className={`border px-3 py-1 text-sm ${
                     isSelected
-                      ? "bg-[var(--foreground)] text-[var(--background)] border-[var(--foreground)]"
-                      : "border-gray-400"
+                      ? "bg-ink text-canvas border-ink"
+                      : "border-hairline text-ink hover:bg-hairline"
                   }`}
                 >
                   {type.display_name}
@@ -118,26 +122,16 @@ export function AppliancePickerStep({
       ))}
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-danger">
           {error}
         </p>
       )}
 
       <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          disabled={isPending}
-          className="border rounded px-3 py-1.5 font-medium disabled:opacity-50"
-        >
+        <button type="button" onClick={onBack} disabled={isPending} className={buttonClass}>
           Back
         </button>
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={isPending}
-          className="border rounded px-3 py-1.5 font-medium disabled:opacity-50"
-        >
+        <button type="button" onClick={handleSubmit} disabled={isPending} className={buttonClass}>
           {isPending ? "Saving…" : "Continue"}
         </button>
       </div>

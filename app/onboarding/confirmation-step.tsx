@@ -9,13 +9,13 @@ export function ConfirmationStep({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm">
+      <p className="text-sm text-ink">
         You&apos;re set — {applianceCount} appliance{applianceCount === 1 ? "" : "s"} added to{" "}
         {address}.
       </p>
       <Link
         href="/dashboard"
-        className="border rounded px-3 py-1.5 font-medium self-start"
+        className="self-start border border-hairline px-3 py-1.5 text-sm font-medium text-ink hover:bg-hairline"
       >
         View your dashboard
       </Link>

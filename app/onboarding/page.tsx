@@ -10,8 +10,8 @@ export default async function OnboardingPage() {
   `) as ApplianceTypeRow[];
 
   return (
-    <main className="flex flex-col gap-6 p-8">
-      <h1 className="text-xl font-semibold">Add your house</h1>
+    <main className="flex flex-col gap-6 bg-canvas p-8">
+      <h1 className="font-display text-xl font-medium text-ink">Add your house</h1>
       <OnboardingFlow applianceTypes={applianceTypes} />
     </main>
   );

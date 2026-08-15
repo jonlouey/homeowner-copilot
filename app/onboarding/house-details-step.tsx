@@ -10,6 +10,9 @@ const HOUSE_TYPE_OPTIONS: { value: HouseDetails["houseType"]; label: string }[] 
   { value: "other", label: "Other" },
 ];
 
+const labelClass = "font-mono text-xs uppercase tracking-wide text-muted";
+const inputClass = "border border-hairline px-2 py-1 text-sm text-ink";
+
 type Errors = Partial<Record<"address" | "zip" | "houseType", string>>;
 
 export function HouseDetailsStep({
@@ -47,7 +50,7 @@ export function HouseDetailsStep({
   return (
     <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-sm">
       <div className="flex flex-col gap-1">
-        <label htmlFor="address" className="text-sm font-medium">
+        <label htmlFor="address" className={labelClass}>
           Address
         </label>
         <input
@@ -56,17 +59,17 @@ export function HouseDetailsStep({
           type="text"
           required
           defaultValue={initial?.address}
-          className="border rounded px-2 py-1"
+          className={inputClass}
         />
         {errors.address && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-danger">
             {errors.address}
           </p>
         )}
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="zip" className="text-sm font-medium">
+        <label htmlFor="zip" className={labelClass}>
           ZIP code
         </label>
         <input
@@ -76,19 +79,19 @@ export function HouseDetailsStep({
           inputMode="numeric"
           required
           defaultValue={initial?.zip}
-          className="border rounded px-2 py-1"
+          className={`${inputClass} font-mono`}
         />
         {errors.zip && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-danger">
             {errors.zip}
           </p>
         )}
       </div>
 
       <fieldset className="flex flex-col gap-1">
-        <legend className="text-sm font-medium">House type</legend>
+        <legend className={labelClass}>House type</legend>
         {HOUSE_TYPE_OPTIONS.map((option) => (
-          <label key={option.value} className="flex items-center gap-2 text-sm">
+          <label key={option.value} className="flex items-center gap-2 text-sm text-ink">
             <input
               type="radio"
               name="houseType"
@@ -100,7 +103,7 @@ export function HouseDetailsStep({
           </label>
         ))}
         {errors.houseType && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-danger">
             {errors.houseType}
           </p>
         )}
@@ -108,7 +111,7 @@ export function HouseDetailsStep({
 
       <button
         type="submit"
-        className="border rounded px-3 py-1.5 font-medium self-start"
+        className="self-start border border-hairline px-3 py-1.5 text-sm font-medium text-ink hover:bg-hairline"
       >
         Continue
       </button>
