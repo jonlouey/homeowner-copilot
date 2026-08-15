@@ -19,9 +19,9 @@ export default async function DashboardPage() {
     <main className="flex flex-col gap-8 p-8 max-w-2xl">
       <h1 className="text-xl font-semibold">{house.address}</h1>
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {cards.map((card) => (
-          <ApplianceCard key={card.applianceInstanceId} card={card} />
+      <section className="grid grid-cols-2 gap-px border border-hairline bg-hairline sm:grid-cols-3">
+        {cards.map((card, index) => (
+          <ApplianceCard key={card.applianceInstanceId} card={card} index={index} />
         ))}
       </section>
 
