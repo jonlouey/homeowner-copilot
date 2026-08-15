@@ -8,8 +8,8 @@ export function SummarySection({ detail }: { detail: ApplianceDetail }) {
   if (!detail.result.hasContent || !paragraph) {
     return (
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium text-gray-500">Summary</h2>
-        <p className="text-sm text-gray-500">
+        <h2 className="font-mono text-xs uppercase tracking-wide text-muted">Summary</h2>
+        <p className="text-sm text-muted">
           We don&apos;t have written guidance for this appliance yet.
         </p>
       </section>
@@ -20,9 +20,9 @@ export function SummarySection({ detail }: { detail: ApplianceDetail }) {
 
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-sm font-medium text-gray-500">Summary</h2>
-      <p className="text-sm leading-relaxed">{paragraph}</p>
-      <p className="text-sm font-medium">{headline}</p>
+      <h2 className="font-mono text-xs uppercase tracking-wide text-muted">Summary</h2>
+      <p className="text-sm leading-relaxed text-ink">{paragraph}</p>
+      <p className="text-sm font-medium text-ink">{headline}</p>
     </section>
   );
 }
