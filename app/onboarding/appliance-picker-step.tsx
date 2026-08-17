@@ -1,8 +1,10 @@
 "use client";
 
+import { Check, ChevronLeft } from "lucide-react";
 import { useState, useTransition } from "react";
 import { submitOnboarding } from "./actions";
 import { DEFAULT_CHECKED_APPLIANCE_TYPE_IDS, getHiddenApplianceTypeIds } from "./filtering";
+import { ProgressBar } from "./progress-bar";
 import type { ApplianceTypeRow, HouseDetails } from "./types";
 
 const CATEGORY_ORDER: ApplianceTypeRow["category"][] = [
@@ -25,8 +27,6 @@ const HOUSE_TYPE_LABELS: Record<HouseDetails["houseType"], string> = {
   townhouse: "townhouse",
   other: "home",
 };
-
-const buttonClass = "border border-hairline px-3 py-1.5 text-sm font-medium text-ink hover:bg-hairline disabled:opacity-50";
 
 export function AppliancePickerStep({
   applianceTypes,
@@ -85,20 +85,24 @@ export function AppliancePickerStep({
   const hidingSomething = hiddenIds.size > 0;
 
   return (
-    <div className="flex flex-col gap-6 max-w-md">
+    <div className="w-full">
+      <ProgressBar currentStep={2} totalSteps={2} />
+
       {hidingSomething && (
-        <p className="text-sm text-muted">
+        <p className="mb-8 text-[14.5px] leading-[1.5] text-ink-muted">
           We&apos;ve hidden a few types based on typical {HOUSE_TYPE_LABELS[houseType]}{" "}
           ownership — add anything we missed.
         </p>
       )}
 
       {groups.map((group) => (
-        <fieldset key={group.category} className="flex flex-col gap-2">
-          <legend className="font-mono text-xs uppercase tracking-wide text-muted">
-            {CATEGORY_LABELS[group.category]}
-          </legend>
-          <div className="flex flex-wrap gap-2">
+        <div key={group.category} className="mb-8">
+          <div className="mb-3.5">
+            <span className="text-[13.5px] font-semibold text-ink">
+              {CATEGORY_LABELS[group.category]}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2.5">
             {group.items.map((type) => {
               const isSelected = selected.has(type.id);
               return (
@@ -107,31 +111,55 @@ export function AppliancePickerStep({
                   type="button"
                   aria-pressed={isSelected}
                   onClick={() => toggle(type.id)}
-                  className={`border px-3 py-1 text-sm ${
+                  className={`inline-flex h-10 items-center gap-[7px] whitespace-nowrap rounded-full border-[1.5px] px-4 text-sm font-medium transition ${
                     isSelected
-                      ? "bg-ink text-canvas border-ink"
-                      : "border-hairline text-ink hover:bg-hairline"
+                      ? "border-accent bg-accent-soft text-navy-deep"
+                      : "border-line text-ink hover:border-[#c3c8d6]"
                   }`}
                 >
+                  <span
+                    className={`flex h-[15px] w-[15px] flex-shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors ${
+                      isSelected ? "border-accent bg-accent" : "border-[#c3c8d6]"
+                    }`}
+                  >
+                    <Check
+                      size={9}
+                      strokeWidth={3}
+                      className={`text-white transition-all ${
+                        isSelected ? "scale-100 opacity-100" : "scale-50 opacity-0"
+                      }`}
+                    />
+                  </span>
                   {type.display_name}
                 </button>
               );
             })}
           </div>
-        </fieldset>
+        </div>
       ))}
 
       {error && (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="mb-4 text-sm text-danger">
           {error}
         </p>
       )}
 
-      <div className="flex gap-3">
-        <button type="button" onClick={onBack} disabled={isPending} className={buttonClass}>
+      <div className="mt-10">
+        <button
+          type="button"
+          onClick={onBack}
+          disabled={isPending}
+          className="group mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-muted transition hover:text-ink disabled:opacity-50"
+        >
+          <ChevronLeft size={16} className="transition-transform group-hover:-translate-x-0.5" />
           Back
         </button>
-        <button type="button" onClick={handleSubmit} disabled={isPending} className={buttonClass}>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={isPending}
+          className="h-[52px] w-full rounded-control bg-navy-deep text-[15.5px] font-semibold text-white transition hover:bg-navy active:translate-y-px disabled:opacity-50"
+        >
           {isPending ? "Saving…" : "Continue"}
         </button>
       </div>

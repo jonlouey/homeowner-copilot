@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { ProgressBar } from "./progress-bar";
 import type { HouseDetails } from "./types";
 
 const HOUSE_TYPE_OPTIONS: { value: HouseDetails["houseType"]; label: string }[] = [
@@ -54,12 +55,8 @@ export function HouseDetailsStep({
   }
 
   return (
-    <form noValidate onSubmit={handleSubmit} className="flex max-w-[460px] flex-col">
-      {/* Progress bar — step 1 of 2, per the design system's progress pattern */}
-      <div className="mb-7 flex gap-1.5">
-        <span className="h-1 flex-1 rounded-full bg-accent" />
-        <span className="h-1 flex-1 rounded-full bg-line-soft" />
-      </div>
+    <form noValidate onSubmit={handleSubmit} className="flex w-full flex-col">
+      <ProgressBar currentStep={1} totalSteps={2} />
 
       <div className="mb-[26px] flex flex-col gap-2">
         <label htmlFor="address" className={labelClass}>
