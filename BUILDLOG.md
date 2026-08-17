@@ -253,3 +253,103 @@ remains reserved for a more precise future calculation.
 
 Not yet done: Phase 2c's remaining acceptance criteria — live Vercel
 verification.
+
+## 2026-08-17 — Design system v2: navy/accent/amber rollout
+
+Replaced the entire visual system, not just refreshed it. The original
+direction (`docs/designs/design-system.md`, v1) was an editorial black/
+white/pine-green look with sharp corners, hairline borders, no shadows,
+and a three-font Space Grotesk/Public Sans/IBM Plex Mono split — fully
+implemented across the app in an earlier session. A second design
+handoff (`docs/designs/reference/`, now archived in the repo rather than
+left as an untracked scratch folder) specified a conflicting direction:
+navy/blue/amber, soft rounded corners, real shadows, and a single Inter
+family. Confirmed with the user that this was an intentional replacement,
+not something to merge, then rewrote `design-system.md` in place — no
+trace of the old system left in the doc — and rebuilt every screen against
+it: onboarding (house-details radio-cards, the segmented progress bar,
+the appliance-picker chip grid, confirmation), the dashboard, and the
+appliance detail page.
+
+**Dashboard restructure, not just a reskin.** The mockup's dashboard
+isn't a flat grid of every appliance — it's two sections: a "Needs your
+attention" list (only appliances that actually need action) and a fixed
+"Categories" grid (Systems/Exterior/Appliances/Safety) for navigation.
+That meant new logic, not just new CSS:
+
+- `computeCategoryRollup` (`lib/rules-engine/rollup.ts`) — one level up
+  from the existing `computeApplianceRollup`, same worst-status-wins
+  priority (red > yellow > green > gray), aggregating a category's
+  already-computed appliance rollups into a single status plus a count of
+  how many appliances share that worst status. Drives "N of M need info"
+  on category cards instead of a raw item count (a design debt the
+  mockup handoff flagged explicitly). 8 unit tests.
+- `/dashboard/category/[categoryId]` — new route, reuses the same
+  `AttentionCard` component scoped to one category (all appliances in
+  that category, not just the ones needing attention — clicking through
+  is for browsing, not another attention list). 404s on an invalid
+  category id.
+- `app/dashboard/data.ts` restructured: `getApplianceCardsForHouse()` and
+  `getCurrentHouse()` pulled out as shared exports so the dashboard and
+  the new category route aren't duplicating the instance/rules/events
+  fetch-and-compute pipeline.
+
+**Three real CSS bugs found and fixed, not just styling choices:**
+
+1. **A cascade-layers bug that silently broke every margin-based utility
+   in the app.** `globals.css`'s reset (`* { margin: 0; padding: 0; }`)
+   was written as plain unlayered CSS. CSS cascade layers give *any*
+   unlayered rule priority over *any* layered rule regardless of
+   specificity, and Tailwind emits all its utilities inside named layers
+   — so that reset was crushing every `mb-*`/`mt-*` class to zero
+   app-wide. Only `gap`-based spacing (a different property) was ever
+   actually rendering, which is why some layouts looked partially right
+   and others read as inexplicably cramped. Fixed by wrapping the reset
+   in `@layer base { ... }`, Tailwind v4's mechanism for custom base
+   styles that still lose to utility classes.
+2. **`width: 100%` can't resolve against an auto-sized parent.** After
+   fixing the layer bug, the onboarding form still wouldn't reach its
+   intended width. The mockup's `.card` rule is `width: 100%; max-width:
+   460px` — translating only the `max-width` half left the form shrinking
+   to its narrowest child's intrinsic width. Fixing that exposed a deeper
+   issue: the wrapping `<main>` (title + step content) had no definite
+   width of its own, and a percentage value can't resolve against a
+   parent whose size isn't definite. Needed a `w-full` at every level of
+   the chain, not just the leaf.
+3. **`align-items: stretch` doesn't center a capped child.** With a
+   definite-width parent, the form finally hit the right pixel width —
+   but sat flush left instead of centered, because stretch only fills the
+   cross-axis when nothing else constrains the item; once `max-width`
+   caps it below the stretch target, the leftover space just doesn't get
+   distributed. The real fix was structural: since the page title and the
+   active step need to share the exact same box, and width differs by
+   step (460px vs. 640px for the wider chip grid), the title and the
+   step-aware `max-w-*` both moved into `onboarding-flow.tsx` — the only
+   component that actually knows which step is active — instead of living
+   in `page.tsx`.
+
+**A real product bug, caught by the user after ring/attention-list
+behavior looked visually plausible but wasn't right:** the "Needs your
+attention" filter originally included any card with `hasRing: true`, so a
+green "all good" appliance carrying a due-soon ring (e.g. a roof
+inspection) showed up in the attention list even though there was nothing
+to act on — the ring is a modifier on an otherwise-fine status, not its
+own urgency tier. Fixed by restricting the filter to `color === "red" ||
+color === "yellow"` only. While fixing it, extracted the predicate into
+`isAttentionWorthy()` (`lib/rules-engine/rollup.ts`) rather than leaving
+it as an inline `.filter()` inside a DB-dependent function — there was no
+unit test covering this logic before, which is exactly how the bug went
+unnoticed. Added 5 tests, including one pinning down the specific
+regression (green + ring → does not qualify).
+
+**Consolidation:** the status-pill/icon-badge/left-border color maps
+started getting re-typed at every call site (dashboard attention cards,
+the appliance detail page header, its Actions section rows) — pulled into
+`app/dashboard/status-styles.tsx` (`StatusPill` component plus the shared
+class maps) before a third copy could drift from the other two, and
+retrofitted the dashboard's `attention-card.tsx` to use it too.
+
+Verified live throughout with real Neon data covering all rollup
+outcomes (red/yellow/green/gray, ringed and unringed, category rollups
+with mixed and empty categories) rather than relying on visual inspection
+alone. Not yet done: live Vercel verification of the full v2 rollout.
