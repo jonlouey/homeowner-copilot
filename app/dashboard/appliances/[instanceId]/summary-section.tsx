@@ -7,9 +7,9 @@ export function SummarySection({ detail }: { detail: ApplianceDetail }) {
 
   if (!detail.result.hasContent || !paragraph) {
     return (
-      <section className="flex flex-col gap-2">
-        <h2 className="font-mono text-xs uppercase tracking-wide text-muted">Summary</h2>
-        <p className="text-sm text-muted">
+      <section className="flex flex-col gap-3">
+        <h2 className="text-[15px] font-bold text-navy-deep">Summary</h2>
+        <p className="text-sm text-ink-muted">
           We don&apos;t have written guidance for this appliance yet.
         </p>
       </section>
@@ -19,10 +19,10 @@ export function SummarySection({ detail }: { detail: ApplianceDetail }) {
   const headline = headlineSentence(pickHeadlineComputation(detail.result.rules));
 
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="font-mono text-xs uppercase tracking-wide text-muted">Summary</h2>
-      <p className="text-sm leading-relaxed text-ink">{paragraph}</p>
-      <p className="text-sm font-medium text-ink">{headline}</p>
+    <section className="flex flex-col gap-3">
+      <h2 className="text-[15px] font-bold text-navy-deep">Summary</h2>
+      <p className="text-sm leading-[1.6] text-ink">{paragraph}</p>
+      <p className="text-sm font-semibold text-ink">{headline}</p>
     </section>
   );
 }

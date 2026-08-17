@@ -1,6 +1,7 @@
 import { dismissTask, markTaskDone, snoozeTask } from "./actions";
 
-const buttonClass = "text-xs border border-hairline px-2 py-1 text-ink hover:bg-hairline";
+const buttonClass =
+  "rounded-control border-[1.5px] border-line px-2.5 py-1 text-xs font-medium text-ink-muted transition hover:border-accent hover:text-ink";
 
 export function TaskActions({
   applianceInstanceId,
