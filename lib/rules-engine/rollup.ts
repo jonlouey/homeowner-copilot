@@ -55,3 +55,70 @@ function cardCopyFor(color: "yellow" | "green", hasRing: boolean): string {
   if (hasRing) return "Action needed soon";
   return color === "yellow" ? "Needs info" : "All good";
 }
+
+/**
+ * Whether an appliance's rollup belongs in the dashboard's "Needs your
+ * attention" list. Only red/yellow qualify — a green card has nothing to
+ * act on, even carrying a due-soon ring (the ring still renders wherever
+ * that card shows up; it just doesn't earn a spot in this section).
+ */
+export function isAttentionWorthy(rollup: ApplianceRollup): boolean {
+  return rollup.color === "red" || rollup.color === "yellow";
+}
+
+export type CategoryRollup = {
+  color: ApplianceRollupColor;
+  // How many appliances in the category share `color` (the worst color
+  // present) — drives "N of M need info" instead of a raw item count.
+  count: number;
+  total: number;
+  metaText: string;
+};
+
+const CATEGORY_COLOR_RANK: Record<ApplianceRollupColor, number> = {
+  red: 0,
+  yellow: 1,
+  green: 2,
+  gray: 3,
+};
+
+/**
+ * One level up from computeApplianceRollup: aggregates a category's
+ * already-computed appliance rollups using the same worst-status-wins
+ * priority (red > yellow > green > gray). Ring overlays don't factor in
+ * here — only `color` does, same as the appliance rollup treats the ring
+ * as a separate modifier, not a fifth color. See docs/designs/
+ * design-system.md's "Category card" design debt note: this replaces a
+ * raw item count with a status-driven "N of M" figure.
+ */
+export function computeCategoryRollup(applianceRollups: ApplianceRollup[]): CategoryRollup {
+  const total = applianceRollups.length;
+
+  if (total === 0) {
+    return { color: "gray", count: 0, total: 0, metaText: "No appliances yet" };
+  }
+
+  let worstColor: ApplianceRollupColor = "gray";
+  for (const rollup of applianceRollups) {
+    if (CATEGORY_COLOR_RANK[rollup.color] < CATEGORY_COLOR_RANK[worstColor]) {
+      worstColor = rollup.color;
+    }
+  }
+
+  const count = applianceRollups.filter((r) => r.color === worstColor).length;
+
+  return { color: worstColor, count, total, metaText: metaTextFor(worstColor, count, total) };
+}
+
+function metaTextFor(color: ApplianceRollupColor, count: number, total: number): string {
+  switch (color) {
+    case "red":
+      return `${count} of ${total} need attention`;
+    case "yellow":
+      return `${count} of ${total} need info`;
+    case "green":
+      return "All good";
+    case "gray":
+      return "No guidance yet";
+  }
+}

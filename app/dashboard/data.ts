@@ -1,6 +1,12 @@
 import { sql } from "@/lib/db";
 import { computeApplianceStatus } from "@/lib/rules-engine/compute";
-import { computeApplianceRollup, type ApplianceRollup } from "@/lib/rules-engine/rollup";
+import {
+  computeApplianceRollup,
+  computeCategoryRollup,
+  isAttentionWorthy,
+  type ApplianceRollup,
+  type CategoryRollup,
+} from "@/lib/rules-engine/rollup";
 import type {
   ApplianceInstanceInput,
   Criticality,
@@ -11,16 +17,27 @@ import type {
 } from "@/lib/rules-engine/types";
 import { CURRENT_USER_ID } from "@/lib/user";
 
+export const CATEGORY_IDS = ["systems", "exterior", "appliances", "safety"] as const;
+export type CategoryId = (typeof CATEGORY_IDS)[number];
+
 export type ApplianceCard = {
   applianceInstanceId: string;
   applianceTypeId: string;
   applianceDisplayName: string;
+  category: CategoryId;
   rollup: ApplianceRollup;
 };
 
+export type CategoryCardData = {
+  categoryId: CategoryId;
+  rollup: CategoryRollup;
+};
+
+export type House = { id: string; address: string };
+
 export type DashboardData =
   | { house: null }
-  | { house: { id: string; address: string }; cards: ApplianceCard[] };
+  | { house: House; attentionCards: ApplianceCard[]; categories: CategoryCardData[] };
 
 const ROLLUP_COLOR_RANK: Record<ApplianceRollup["color"], number> = {
   red: 0,
@@ -29,14 +46,7 @@ const ROLLUP_COLOR_RANK: Record<ApplianceRollup["color"], number> = {
   gray: 3,
 };
 
-/**
- * Thin wrapper (per the Phase 2a "Function contract" note) around
- * computeApplianceStatus + computeApplianceRollup: fetches the current
- * house's active appliance instances plus their maintenance_rules and
- * task_events, runs the pure compute + rollup functions per instance, and
- * returns one card per instance for the Phase 2c grid.
- */
-export async function getDashboardData(): Promise<DashboardData> {
+export async function getCurrentHouse(): Promise<House | null> {
   const houses = await sql`
     select id, address from houses
     where user_id = ${CURRENT_USER_ID}
@@ -44,24 +54,31 @@ export async function getDashboardData(): Promise<DashboardData> {
     limit 1
   `;
 
-  if (houses.length === 0) {
-    return { house: null };
-  }
+  return houses.length > 0 ? (houses[0] as House) : null;
+}
 
-  const house = houses[0] as { id: string; address: string };
-
+/**
+ * Thin wrapper (per the Phase 2a "Function contract" note) around
+ * computeApplianceStatus + computeApplianceRollup: fetches a house's
+ * active appliance instances plus their maintenance_rules and
+ * task_events, and runs the pure compute + rollup functions per
+ * instance. Shared by the dashboard (all cards, split into attention +
+ * category rollups) and the /dashboard/category/[categoryId] page
+ * (filtered to one category).
+ */
+export async function getApplianceCardsForHouse(houseId: string): Promise<ApplianceCard[]> {
   const [instanceRows, ruleRows, applianceTypeRows] = await Promise.all([
     sql`
       select id, appliance_type_id, age_range, to_char(install_date, 'YYYY-MM-DD') as install_date
       from appliance_instances
-      where house_id = ${house.id} and status = 'active'
+      where house_id = ${houseId} and status = 'active'
     `,
     sql`
       select id, appliance_type_id, task_name, description, frequency_months,
              rule_type, criticality, min_age_range
       from maintenance_rules
     `,
-    sql`select id, display_name from appliance_types`,
+    sql`select id, category, display_name from appliance_types`,
   ]);
 
   const instances = instanceRows as {
@@ -82,12 +99,9 @@ export async function getDashboardData(): Promise<DashboardData> {
         `
       : [];
 
-  const displayNameById = new Map(
-    (applianceTypeRows as { id: string; display_name: string }[]).map((row) => [
-      row.id,
-      row.display_name,
-    ])
-  );
+  const typeRows = applianceTypeRows as { id: string; category: CategoryId; display_name: string }[];
+  const displayNameById = new Map(typeRows.map((row) => [row.id, row.display_name]));
+  const categoryById = new Map(typeRows.map((row) => [row.id, row.category]));
 
   const rulesByApplianceType = groupRulesByApplianceType(
     ruleRows as {
@@ -113,9 +127,10 @@ export async function getDashboardData(): Promise<DashboardData> {
     }[]
   );
 
-  const cards: ApplianceCard[] = instances.map((row) => {
+  return instances.map((row) => {
     const applianceDisplayName =
       displayNameById.get(row.appliance_type_id) ?? row.appliance_type_id;
+    const category = categoryById.get(row.appliance_type_id) ?? "systems";
 
     const instanceInput: ApplianceInstanceInput = {
       id: row.id,
@@ -134,16 +149,49 @@ export async function getDashboardData(): Promise<DashboardData> {
       applianceInstanceId: row.id,
       applianceTypeId: row.appliance_type_id,
       applianceDisplayName,
+      category,
       rollup,
     };
   });
+}
 
-  // Not specified by the doc for the grid — worst-status-first (matching
-  // the urgency-first ordering established in Phase 2b), alphabetical
-  // within a color as a tiebreaker.
-  cards.sort(compareCards);
+/**
+ * Dashboard route data: the current house's cards split into the
+ * "Needs your attention" list (only cards that are actually red or
+ * yellow — a green card has nothing to act on, even if it's carrying a
+ * due-soon ring; the ring still renders wherever that card shows up, it
+ * just doesn't earn it a spot in this section) and one rollup per fixed
+ * category for the category cards. Per docs/designs/design-system.md's
+ * "Product decisions": no home-health summary banner, just these two
+ * sections.
+ */
+export async function getDashboardData(): Promise<DashboardData> {
+  const house = await getCurrentHouse();
+  if (!house) {
+    return { house: null };
+  }
 
-  return { house, cards };
+  const cards = await getApplianceCardsForHouse(house.id);
+
+  const attentionCards = cards
+    .filter((card) => isAttentionWorthy(card.rollup))
+    .sort(compareByRollupSeverity);
+
+  const categories: CategoryCardData[] = CATEGORY_IDS.map((categoryId) => ({
+    categoryId,
+    rollup: computeCategoryRollup(
+      cards.filter((card) => card.category === categoryId).map((card) => card.rollup)
+    ),
+  }));
+
+  return { house, attentionCards, categories };
+}
+
+export function compareByRollupSeverity(a: ApplianceCard, b: ApplianceCard): number {
+  const rankA = ROLLUP_COLOR_RANK[a.rollup.color];
+  const rankB = ROLLUP_COLOR_RANK[b.rollup.color];
+  if (rankA !== rankB) return rankA - rankB;
+  return a.applianceDisplayName.localeCompare(b.applianceDisplayName);
 }
 
 function groupRulesByApplianceType(
@@ -205,11 +253,4 @@ function groupEventsByInstance(
   }
 
   return map;
-}
-
-function compareCards(a: ApplianceCard, b: ApplianceCard): number {
-  const rankA = ROLLUP_COLOR_RANK[a.rollup.color];
-  const rankB = ROLLUP_COLOR_RANK[b.rollup.color];
-  if (rankA !== rankB) return rankA - rankB;
-  return a.applianceDisplayName.localeCompare(b.applianceDisplayName);
 }

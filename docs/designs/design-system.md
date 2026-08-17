@@ -143,7 +143,7 @@ touch `lib/rules-engine/`, `app/*/actions.ts`, or any `data.ts` files
 (the one exception is the category-card navigation decision above, which
 is new, minimal routing, not a logic change). Rebuild each pattern as a
 proper component wired to real data, not copy-pasted from the throwaway
-HTML mockups in `docs/designs/Design Update/`.
+HTML mockups in `docs/designs/reference/`.
 
 ## Open product questions
 
