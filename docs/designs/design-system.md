@@ -5,158 +5,163 @@
 
 ## Goal
 
-Establish a real visual identity for the app, replacing the plain
-default Tailwind styling used through Phase 2c. This doc is the single
+Establish a real visual identity for the app. This doc is the single
 source of truth for color, type, and component conventions going forward
 — every future phase's UI work should be built against these tokens, not
 ad hoc choices.
 
 ## Direction
 
-Editorial and architectural, inspired by Dezeen, Design Milk, and Dwell
-Home Co — confidence through restraint, not decoration. White canvas as
-the dominant field, black as ink (structure and text), a deep restrained
-green as a considered accent grounded in the subject matter (home, care,
-maintenance) rather than a generic "tech green." Deliberately avoiding the
-common AI-generated default of a near-black background with a single
-bright accent color — this is the inverse: light field, sparing color.
-
-Presentation reads like an inspection report or spec sheet: hairline
-rules instead of shadows, sharp corners instead of soft rounded cards,
-monospace data/labels instead of decorative flourishes. This echoes the
-contractor-voice content already written for the appliance detail pages
-— the visual language and the writing voice should feel like the same
-source.
+Calm, trustworthy, navy-and-white — closer to a well-made financial or
+insurance product than a spec sheet. Soft rounded corners (cards and
+pills, not sharp edges), a deep navy for primary actions and structure, a
+single blue accent for interactive/selected states, and amber reserved
+for "needs attention" signals. Shadows are used deliberately, for hover
+lift and card separation.
 
 ## Color tokens
 
 | Name | Hex | Use |
 |---|---|---|
-| Canvas | `#FAFAF8` | Page background |
-| Ink | `#141412` | Primary text, borders, structural lines |
-| Pine | `#1B4332` | Brand accent, "good" status, primary interactive elements |
-| Hairline | `#E4E2DC` | Dividers, card grid lines, default borders |
-| Muted | `#6B6B63` | Secondary text, timestamps, captions |
-| Faint | `#B4B2A9` | No-content / disabled state text and icons |
-| Danger | `#E24B4A` | Overdue status only — a deliberate departure from the calm palette |
-| Warning | `#BA7517` | Needs-info status and due-soon indicators |
+| Navy | `#16294F` | Primary buttons, strong structural elements |
+| Navy deep | `#0D1A33` | Primary button hover state |
+| Accent | `#2F5FD8` | Interactive/selected state, focus rings, links |
+| Accent soft | `#EAF0FE` | Accent fill background (selected radio/chip) |
+| Amber | `#B9720C` | "Needs info" / attention status text and accents |
+| Amber soft | `#FDF1DE` | Amber fill background (status pill, attention card hints) |
+| Amber line | `#F2DDB3` | Amber borders (status pill, attention card) |
+| Danger | `#B83232` | Overdue status text/accents |
+| Danger soft | `#FBECEB` | Overdue fill background |
+| Danger line | `#F0C9C4` | Overdue borders |
+| Good | `#1F7A4D` | Up-to-date/all-good status text/accents |
+| Good soft | `#E9F7EE` | Good fill background |
+| Good line | `#C7E8D3` | Good borders |
+| Ink | `#16192A` | Primary text |
+| Ink muted | `#5B6072` | Secondary text, labels |
+| Ink faint | `#9195A5` | Placeholder/disabled text, faint icons |
+| Line | `#DFE2EA` | Default borders |
+| Line soft | `#ECEEF4` | Subtle dividers, no-content card fill |
+| Paper | `#FBFBFD` | Page background |
 
-**Rule: red and amber only appear for genuine urgency.** Their rarity is
-what makes them work — if they show up anywhere else (decorative
-accents, unrelated UI chrome), they stop reading as signals.
+Danger and good follow the same text / soft-fill / line-border trio shape
+as amber, so all three status colors behave identically wherever the
+status pill pattern is used.
 
-Tailwind config addition:
+> **This project uses Tailwind v4** — there is no `tailwind.config.js` in
+> this repo. These tokens live in a `@theme` block in `app/globals.css`
+> instead, including `--radius-card`/`--radius-control` for the
+> border-radius tokens below, which v4 turns into
+> `rounded-card`/`rounded-control` utilities.
 
-```ts
-// tailwind.config.ts
-colors: {
-  canvas: '#FAFAF8',
-  ink: '#141412',
-  pine: '#1B4332',
-  hairline: '#E4E2DC',
-  muted: '#6B6B63',
-  faint: '#B4B2A9',
-  danger: '#E24B4A',
-  warn: '#BA7517',
-}
-```
-
-> **Implemented differently:** this project uses Tailwind v4, which has no
-> `tailwind.config.ts` file — there isn't one in this repo. These tokens
-> live in a `@theme` block in `app/globals.css` instead, which is v4's
-> equivalent mechanism (and also where the CSS variables get emitted for
-> direct use outside of Tailwind utility classes, e.g. in `body`'s base
-> styles).
+Border radius: `card` 12px (cards), `control` 10px (buttons, inputs,
+radio-cards), plus standard Tailwind `rounded-full` for pills/chips/dots.
 
 ## Typography
 
-Three-role pairing, loaded via `next/font/google` (all open-source,
-self-hostable, no licensing concern):
+Single font family: **Inter**, loaded via `next/font/google`, with a
+system-font fallback stack (`-apple-system, "Segoe UI", sans-serif`) so
+text never waits on a slow font load.
 
-- **Display** (headings, appliance names): Space Grotesk, weights 500/700
-- **Body** (paragraphs, Summary content, general UI text): Public Sans,
-  weight 400/500
-- **Data** (dates, statuses, index numbers, technical labels): IBM Plex
-  Mono, weight 400/500
-
-```ts
-// app/layout.tsx or a shared fonts.ts
-import { Space_Grotesk, Public_Sans, IBM_Plex_Mono } from 'next/font/google'
-
-const display = Space_Grotesk({ subsets: ['latin'], weight: ['500', '700'], variable: '--font-display' })
-const body = Public_Sans({ subsets: ['latin'], weight: ['400', '500'], variable: '--font-body' })
-const mono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500'], variable: '--font-mono' })
-```
-
-The mono face isn't decorative — reserve it specifically for genuinely
-data-like content (dates, statuses, counts, index numbers), not general
-UI text. Using it everywhere would flatten the distinction that makes it
-meaningful.
+Type scale used throughout:
+- Page title: 28–30px / 700
+- Section title: 15px / 700
+- Body / label: 14–15px / 600
+- Meta / caption: 12–12.5px / 400–600
 
 ## Component conventions
 
-- **Corners**: sharp or minimal (0-2px radius) throughout — no default
-  Tailwind `rounded-lg`/`rounded-xl` card styling
-- **Borders over shadows**: 1px hairline borders (`border-hairline`), no
-  `box-shadow` anywhere. This is a hard rule, not a preference — shadows
-  read as generic SaaS, hairlines read as the spec-sheet direction
-- **Status indication**: a left-edge border accent (3px, status color),
-  not a filled badge, circle, or colored card background — quieter and
-  more consistent with the ledger/report aesthetic
-- **Grid over gap**: adjacent cards/rows separated by hairline grid lines
-  (1px `hairline` background showing through a 1px gap) rather than
-  individual card borders with visible gaps between them
-- **Index numbering**: small mono numbers (01, 02, 03...) may be used
-  where the content has a genuine stable order (like the appliance card
-  grid) — not decoratively, and not where order is arbitrary
-- **Green is reserved** — brand accent and "good" status only. Don't
-  reach for it as a general-purpose UI color (links, generic highlights,
-  etc.) without deliberate reasoning
+- **Corners**: soft, not sharp — `rounded-card` (12px) for cards,
+  `rounded-control` (10px) for buttons/inputs/radio-cards, `rounded-full`
+  for pills, chips, and status dots
+- **Shadows**: soft, low-opacity shadows for hover lift and card
+  separation (e.g. `shadow-md` on hover, `-translate-y-px`)
+- **Primary button**: full-width, navy, one per screen — never paired
+  with an equal-weight secondary button. `h-[52px] rounded-control
+  bg-navy-deep text-white font-semibold hover:bg-navy active:translate-y-px`
+- **Back navigation**: a quiet text link above the primary button (not
+  beside it), not a button — `text-sm font-semibold text-ink-muted
+  hover:text-ink`, chevron nudges left on hover
+- **Text input**: `h-12 rounded-control border-[1.5px] border-line px-4
+  text-[15px]`, focus state `border-accent ring-4 ring-accent-soft`
+- **Radio option** (e.g. house type): a full-row selectable card, not a
+  bare radio dot — `rounded-control border-[1.5px] border-line`, checked
+  state `border-accent bg-accent-soft ring-4 ring-accent-soft`, with an
+  18px dot that fills solid accent when checked
+- **Chip / multi-select toggle** (e.g. appliance picker): pill-shaped,
+  `h-10 rounded-full border-[1.5px] border-line`, checked state
+  `border-accent bg-accent-soft text-navy-deep` with a 15px check-dot that
+  fills accent + white checkmark. Group under section labels with
+  `flex flex-wrap gap-2.5`
+- **Status pill**: `rounded-full border bg-{status}-soft px-2.5 py-1
+  text-[11px] font-bold uppercase tracking-wide text-{status}` plus a
+  small 5px solid dot in the status color before the text. One shape,
+  color trio swaps per status (amber/danger/good)
+- **Attention card**: left-accented (3px, status-color border-left),
+  `rounded-card border border-line bg-white p-[18px]`, icon badge
+  top-right, index number top-left, title, status pill at the bottom,
+  `hover:shadow-md hover:-translate-y-px`
+- **Category card**: horizontal layout, icon badge + name + meta text,
+  `flex items-center gap-3 rounded-card border-[1.5px] border-line
+  bg-white p-4`, `hover:border-accent hover:shadow-md hover:-translate-y-px`.
+  Icon badge: 38px, `rounded-[9px] bg-accent-soft text-accent`
 
 ## Status → color mapping (unify with the Phase 2c rollup)
 
-This maps directly onto the existing red/yellow/green rollup from Phase
-2c's `computeApplianceRollup` — no changes to that logic, just the visual
-tokens applied to its existing outputs:
+Same rollup logic as before (`computeApplianceRollup`), visual tokens:
 
-| Rollup status | Token |
+| Rollup status | Token trio |
 |---|---|
-| Red (overdue) | `danger` |
-| Yellow (needs info) | `warn` |
-| Green (all good) | `pine` |
-| Gray (no content) | `faint` |
-| Amber ring overlay | `warn`, as a ring/outline rather than a fill |
+| Red (overdue) | `danger` / `danger-soft` / `danger-line` |
+| Yellow (needs info) | `amber` / `amber-soft` / `amber-line` |
+| Green (all good) | `good` / `good-soft` / `good-line` |
+| Gray (no content) | `ink-faint` text, `line-soft` fill |
 
-**Dark mode is currently unsupported.** The scaffold's original
-`prefers-color-scheme: dark` override (a near-black background swap) was
-removed when these tokens were applied, since it directly conflicted with
-the light-canvas direction above — leaving it in place would have reverted
-the app to an undesigned dark palette for anyone with OS dark mode on. No
-dark variant has been designed yet; this system is light-canvas only for
-now.
+**Open question, not resolved here:** the status-pill pattern is one pill
+per card. Whether "due soon" gets its own pill state, reuses amber, or
+needs a different treatment isn't specified — flagging rather than
+guessing.
+
+**Dark mode is unsupported.** Not addressed in this direction.
+
+## Product decisions
+
+- **Category cards navigate to a filtered list of that category's
+  appliances** (e.g. clicking "Systems" shows just the Systems
+  appliances). This is the click target for the category card pattern
+  below.
+- **No home-health summary banner for now.** The dashboard stays exactly
+  attention cards + category cards — no completion ring, no "N tasks
+  need attention" banner at the top. Revisit if the empty/sparse states
+  feel wrong once real usage exists.
 
 ## Rollout scope
 
-This is a visual system, not a new phase of functional work — apply it
-across the existing app (dashboard cards, appliance detail page,
-onboarding) without changing any underlying logic, data flow, or
-component structure. Treat it the same way you'd treat a CSS refactor:
-should not touch `lib/rules-engine/`, `app/*/actions.ts`, or any
-`data.ts` files.
+This is a visual system, not new functional work. Apply it across the
+existing app (dashboard cards, appliance detail page, onboarding) without
+changing underlying logic, data flow, or component structure — don't
+touch `lib/rules-engine/`, `app/*/actions.ts`, or any `data.ts` files
+(the one exception is the category-card navigation decision above, which
+is new, minimal routing, not a logic change). Rebuild each pattern as a
+proper component wired to real data, not copy-pasted from the throwaway
+HTML mockups in `docs/designs/Design Update/`.
+
+## Open product questions
+
+Still unresolved — decide before or during the relevant build step,
+don't guess:
+
+1. Per-category status instead of raw counts on category cards — "2 of 7
+   need info" beats "7 items."
+2. Time/due-date surfacing somewhere on the dashboard — next-due task,
+   overdue flags, last-checked dates.
+3. Whether "Needs attention" and "Categories" should carry different
+   visual weight (time-sensitive vs. static navigation).
 
 ## Suggested rollout order
 
-1. Global tokens: Tailwind config + font setup, applied to `globals.css`
-   and root layout
-2. Dashboard card grid (the piece already validated in this doc's mockup)
+1. Global tokens: `@theme` block + Inter font setup, applied to
+   `globals.css` and root layout
+2. Dashboard card grid (attention cards + category cards)
 3. Appliance detail page (Summary/Actions/History sections)
-4. Onboarding flow (house details, appliance picker, confirmation)
-
-## Handoff note for Claude Code
-
-Good first prompt: "Apply the design system in
-docs/design/design-system.md — start with the Tailwind config and font
-setup only, no component changes yet. Stop there for review." Once tokens
-are in place and confirmed, move to the dashboard card grid specifically,
-since it's the piece already validated visually — treat it as the
-reference implementation the other pages should match.
+4. Onboarding flow (house details radio-cards, appliance picker chips,
+   confirmation)

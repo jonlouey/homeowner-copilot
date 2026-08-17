@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { bodyFont, displayFont, monoFont } from "./fonts";
+import { sansFont } from "./fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,10 +9,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable}`}
-    >
+    <html lang="en" className={sansFont.variable}>
       <body>{children}</body>
     </html>
   );

@@ -10,8 +10,9 @@ const HOUSE_TYPE_OPTIONS: { value: HouseDetails["houseType"]; label: string }[] 
   { value: "other", label: "Other" },
 ];
 
-const labelClass = "font-mono text-xs uppercase tracking-wide text-muted";
-const inputClass = "border border-hairline px-2 py-1 text-sm text-ink";
+const labelClass = "text-[13.5px] font-semibold text-ink";
+const inputClass =
+  "h-12 rounded-control border-[1.5px] border-line px-4 text-[15px] text-ink outline-none transition placeholder:text-ink-faint hover:border-[#c3c8d6] focus:border-accent focus:ring-4 focus:ring-accent-soft";
 
 type Errors = Partial<Record<"address" | "zip" | "houseType", string>>;
 
@@ -23,6 +24,11 @@ export function HouseDetailsStep({
   onContinue: (details: HouseDetails) => void;
 }) {
   const [errors, setErrors] = useState<Errors>({});
+  // Styling-only — drives the radio-card's checked appearance. The native
+  // inputs stay uncontrolled (defaultChecked) exactly as before; this
+  // doesn't touch validation or submission, which still read from
+  // FormData in handleSubmit.
+  const [selectedHouseType, setSelectedHouseType] = useState<string>(initial?.houseType ?? "");
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -48,8 +54,14 @@ export function HouseDetailsStep({
   }
 
   return (
-    <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-sm">
-      <div className="flex flex-col gap-1">
+    <form noValidate onSubmit={handleSubmit} className="flex max-w-[460px] flex-col">
+      {/* Progress bar — step 1 of 2, per the design system's progress pattern */}
+      <div className="mb-7 flex gap-1.5">
+        <span className="h-1 flex-1 rounded-full bg-accent" />
+        <span className="h-1 flex-1 rounded-full bg-line-soft" />
+      </div>
+
+      <div className="mb-[26px] flex flex-col gap-2">
         <label htmlFor="address" className={labelClass}>
           Address
         </label>
@@ -58,6 +70,7 @@ export function HouseDetailsStep({
           name="address"
           type="text"
           required
+          placeholder="123 Main Street"
           defaultValue={initial?.address}
           className={inputClass}
         />
@@ -68,7 +81,7 @@ export function HouseDetailsStep({
         )}
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="mb-[26px] flex flex-col gap-2">
         <label htmlFor="zip" className={labelClass}>
           ZIP code
         </label>
@@ -77,9 +90,11 @@ export function HouseDetailsStep({
           name="zip"
           type="text"
           inputMode="numeric"
+          maxLength={5}
           required
+          placeholder="00000"
           defaultValue={initial?.zip}
-          className={`${inputClass} font-mono`}
+          className={`${inputClass} max-w-[160px]`}
         />
         {errors.zip && (
           <p role="alert" className="text-sm text-danger">
@@ -88,22 +103,47 @@ export function HouseDetailsStep({
         )}
       </div>
 
-      <fieldset className="flex flex-col gap-1">
-        <legend className={labelClass}>House type</legend>
-        {HOUSE_TYPE_OPTIONS.map((option) => (
-          <label key={option.value} className="flex items-center gap-2 text-sm text-ink">
-            <input
-              type="radio"
-              name="houseType"
-              value={option.value}
-              required
-              defaultChecked={initial?.houseType === option.value}
-            />
-            {option.label}
-          </label>
-        ))}
+      <fieldset>
+        <legend className={`${labelClass} mb-3`}>House type</legend>
+        <div className="flex flex-col gap-2.5">
+          {HOUSE_TYPE_OPTIONS.map((option) => {
+            const isChecked = selectedHouseType === option.value;
+            return (
+              <label
+                key={option.value}
+                className={`flex h-[50px] cursor-pointer items-center gap-3 rounded-control border-[1.5px] px-4 text-[14.5px] font-medium text-ink transition ${
+                  isChecked
+                    ? "border-accent bg-accent-soft ring-4 ring-accent-soft"
+                    : "border-line hover:border-[#c3c8d6]"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="houseType"
+                  value={option.value}
+                  required
+                  defaultChecked={initial?.houseType === option.value}
+                  onChange={() => setSelectedHouseType(option.value)}
+                  className="sr-only"
+                />
+                <span
+                  className={`relative h-[18px] w-[18px] flex-shrink-0 rounded-full border-[1.5px] transition-colors ${
+                    isChecked ? "border-accent" : "border-[#c3c8d6]"
+                  }`}
+                >
+                  <span
+                    className={`absolute inset-[3px] rounded-full bg-accent transition-transform ${
+                      isChecked ? "scale-100" : "scale-0"
+                    }`}
+                  />
+                </span>
+                {option.label}
+              </label>
+            );
+          })}
+        </div>
         {errors.houseType && (
-          <p role="alert" className="text-sm text-danger">
+          <p role="alert" className="mt-2 text-sm text-danger">
             {errors.houseType}
           </p>
         )}
@@ -111,7 +151,7 @@ export function HouseDetailsStep({
 
       <button
         type="submit"
-        className="self-start border border-hairline px-3 py-1.5 text-sm font-medium text-ink hover:bg-hairline"
+        className="mt-[34px] h-[52px] rounded-control bg-navy-deep text-[15.5px] font-semibold text-white transition hover:bg-navy active:translate-y-px"
       >
         Continue
       </button>
