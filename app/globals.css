@@ -22,6 +22,12 @@
   --color-line-soft: #ECEEF4;
   --color-paper: #FBFBFD;
 
+  /* Hero-only, light-on-dark — see design-system.md's "Hero-only tokens"
+     note. Not calibrated for use outside a dark/photo background. */
+  --color-hero-text: #E4E8F4;
+  --color-hero-text-muted: #CDD9FB;
+  --color-hero-credit: #AAB4D1;
+
   --radius-card: 12px;
   --radius-control: 10px;
 

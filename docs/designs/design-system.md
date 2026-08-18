@@ -47,6 +47,20 @@ Danger and good follow the same text / soft-fill / line-border trio shape
 as amber, so all three status colors behave identically wherever the
 status pill pattern is used.
 
+**Hero-only tokens (light-on-dark)** — none of the above are calibrated
+for light text over a dark photo, which the landing page's hero needed.
+Scoped to that context specifically; don't reach for these outside a
+dark/photo background.
+
+| Name | Hex | Use |
+|---|---|---|
+| Hero text | `#E4E8F4` | Hero subtext (the descriptive paragraph under the headline) |
+| Hero text muted | `#CDD9FB` | Hero eyebrow label and the credit line's link |
+| Hero credit | `#AAB4D1` | Hero photo-credit line's base text |
+
+The headline itself stays plain white — only these three needed a named
+value.
+
 > **This project uses Tailwind v4** — there is no `tailwind.config.js` in
 > this repo. These tokens live in a `@theme` block in `app/globals.css`
 > instead, including `--radius-card`/`--radius-control` for the
