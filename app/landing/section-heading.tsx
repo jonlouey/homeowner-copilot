@@ -7,7 +7,7 @@ export function SectionHeading({
 }: {
   eyebrow: string;
   title: string;
-  subtitle: string;
+  subtitle?: string;
 }) {
   return (
     <div className="mx-auto mb-14 max-w-[520px] text-center">
@@ -15,7 +15,7 @@ export function SectionHeading({
         {eyebrow}
       </p>
       <h2 className="mb-3 text-[28px] font-bold tracking-[-0.01em] text-navy-deep">{title}</h2>
-      <p className="text-[15px] leading-[1.55] text-ink-muted">{subtitle}</p>
+      {subtitle && <p className="text-[15px] leading-[1.55] text-ink-muted">{subtitle}</p>}
     </div>
   );
 }
