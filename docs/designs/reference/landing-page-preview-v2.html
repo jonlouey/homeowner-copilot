@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Landing page preview v2</title>
+<style>
+  :root{
+    --navy: #16294f; --navy-deep: #0d1a33;
+    --accent: #2f5fd8; --accent-soft: #eaf0fe;
+    --danger: #b83232; --danger-soft: #fbeceb;
+    --good: #1f7a4d; --good-soft: #e9f7ee;
+    --amber: #b9720c; --amber-soft: #fdf1de;
+    --ink: #16192a; --ink-muted: #5b6072; --ink-faint: #9195a5;
+    --line: #dfe2ea; --line-soft: #eceef4; --paper: #fbfbfd;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--paper); font-family:-apple-system,"Inter","Segoe UI",Helvetica,Arial,sans-serif; color:var(--ink); }
+  section{ padding: 64px 24px; }
+  #how-it-works{ background: var(--accent-soft); }
+  #value{ background: var(--paper); }
+  footer{ background: var(--line-soft); }
+  .inner{ max-width: 1040px; margin:0 auto; }
+  .narrow{ max-width: 680px; margin:0 auto; }
+
+  nav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 18px 24px; border-bottom:1px solid var(--line);
+    position:sticky; top:0; background:rgba(251,251,253,0.92); backdrop-filter:blur(6px); z-index:10;
+  }
+  .nav-inner{ max-width:1040px; margin:0 auto; width:100%; display:flex; align-items:center; justify-content:space-between; }
+  .logo{ display:flex; align-items:center; gap:8px; font-weight:700; font-size:15px; color:var(--navy-deep); }
+  .logo-mark{ width:26px; height:26px; border-radius:7px; background:var(--navy-deep); color:#fff; display:flex; align-items:center; justify-content:center; }
+  .logo-mark svg{ width:15px; height:15px; }
+  .nav-links{ display:flex; align-items:center; gap:28px; }
+  .nav-links a{ font-size:14px; font-weight:500; color:var(--ink-muted); text-decoration:none; }
+  .nav-cta{ height:38px; padding:0 18px; border-radius:9px; background:var(--navy-deep); color:#fff; border:none; font-size:13.5px; font-weight:600; font-family:inherit; cursor:pointer; }
+
+  .hero{
+    position:relative; overflow:hidden; min-height:480px; width:100%;
+    display:flex; align-items:center; justify-content:center;
+    background:#0d1a33 url('https://images.unsplash.com/photo-1558036117-15d82a90b9b1?fm=jpg&q=60&w=1920&auto=format&fit=crop') center/cover no-repeat;
+  }
+  .hero-content{
+    position:relative; text-align:center; padding:40px 28px;
+    max-width:560px; margin: 0 24px;
+  }
+  h1, .eyebrow, .sub, .credit{ text-shadow: 0 2px 16px rgba(0,0,0,0.45), 0 1px 4px rgba(0,0,0,0.35); }
+  .eyebrow{ font-size:12.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#cdd9fb; margin:0 0 14px; }
+  h1{ font-size:38px; line-height:1.15; letter-spacing:-0.015em; font-weight:700; color:#fff; margin:0 0 16px; }
+  .sub{ font-size:16px; line-height:1.55; color:#e4e8f4; max-width:500px; margin:0 auto 28px; }
+  .cta{ height:50px; padding:0 30px; border:none; border-radius:10px; background:#fff; color:var(--navy-deep); font-size:15.5px; font-weight:600; font-family:inherit; cursor:pointer; }
+  .credit{ font-size:11px; color:#aab4d1; margin:14px 0 0; }
+  .credit a{ color:#cdd9fb; }
+
+  .section-eyebrow{ font-size:12.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); text-align:center; margin:0 0 12px; }
+  .section-title{ font-size:28px; font-weight:700; color:var(--navy-deep); text-align:center; margin:0 0 12px; letter-spacing:-0.01em; }
+  .section-sub{ font-size:15px; color:var(--ink-muted); text-align:center; margin:0 auto 56px; max-width:520px; line-height:1.55; }
+
+  .step{ display:grid; grid-template-columns: 1fr 1fr; gap:56px; align-items:center; margin-bottom:72px; }
+  .step:last-child{ margin-bottom:0; }
+  .step:nth-child(odd) .step-text{ order:1; }
+  .step:nth-child(odd) .step-preview{ order:2; }
+  .step:nth-child(even) .step-text{ order:2; }
+  .step:nth-child(even) .step-preview{ order:1; }
+  .step-num{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:50%; background:var(--navy-deep); color:#fff; font-size:13px; font-weight:700; margin-bottom:16px; }
+  .step-text h3{ font-size:22px; font-weight:700; color:var(--ink); margin:0 0 10px; letter-spacing:-0.01em; }
+  .step-text p{ font-size:14.5px; line-height:1.6; color:var(--ink-muted); margin:0; }
+
+  .preview-frame{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:0 8px 28px rgba(22,41,79,0.08); }
+  .preview-chip{ display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 12px; border-radius:999px; border:1.5px solid var(--line); font-size:12px; font-weight:500; margin:0 6px 6px 0; }
+  .preview-chip.on{ border-color:var(--accent); background:var(--accent-soft); color:var(--navy-deep); }
+  .preview-card{ display:flex; align-items:center; gap:10px; padding:12px; border:1px solid var(--line); border-radius:10px; margin-bottom:8px; }
+  .preview-card.danger{ border-left:3px solid var(--danger); }
+  .preview-card.amber{ border-left:3px solid var(--amber); }
+  .preview-card.good{ border-left:3px solid var(--good); }
+  .preview-icon{ width:28px; height:28px; border-radius:7px; background:var(--accent-soft); color:var(--accent); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .preview-icon svg{ width:14px; height:14px; }
+  .preview-title{ font-size:13px; font-weight:600; color:var(--ink); margin:0; }
+  .preview-pill{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; padding:2px 8px; border-radius:999px; margin-left:auto; }
+  .preview-pill.danger{ background:var(--danger-soft); color:var(--danger); }
+  .preview-pill.amber{ background:var(--amber-soft); color:var(--amber); }
+  .preview-pill.good{ background:var(--good-soft); color:var(--good); }
+  .preview-body p{ font-size:12.5px; line-height:1.6; color:var(--ink-muted); margin:0; }
+
+  .grid4{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .card{ border:1.5px solid var(--line); border-radius:12px; padding:20px; }
+  .icon{ width:36px; height:36px; border-radius:9px; background:var(--accent-soft); color:var(--accent); display:flex; align-items:center; justify-content:center; margin-bottom:14px; }
+  .icon svg{ width:18px; height:18px; }
+  .card h3{ font-size:14.5px; font-weight:600; color:var(--ink); margin:0 0 6px; }
+  .card p{ font-size:12.5px; line-height:1.5; color:var(--ink-muted); margin:0; }
+
+  .closing{ background:var(--navy-deep); border-radius:16px; text-align:center; padding:64px 24px; color:#fff; }
+  .closing h2{ font-size:28px; font-weight:700; margin:0 0 12px; letter-spacing:-0.01em; }
+  .closing p{ font-size:15px; color:#c3cbe0; margin:0 0 28px; }
+  .closing .cta{ background:#fff; color:var(--navy-deep); }
+
+  footer{ border-top:1px solid var(--line); padding:32px 24px; text-align:center; }
+  footer p{ font-size:12.5px; color:var(--ink-faint); margin:0; }
+
+  @media (max-width: 760px){
+    .step{ grid-template-columns:1fr; gap:28px; }
+    .step:nth-child(odd) .step-text, .step:nth-child(even) .step-text{ order:1; }
+    .step:nth-child(odd) .step-preview, .step:nth-child(even) .step-preview{ order:2; }
+    .grid4{ grid-template-columns:repeat(2,1fr); }
+    .nav-links{ display:none; }
+    h1{ font-size:28px; }
+  }
+</style>
+</head>
+<body>
+
+  <nav><div class="nav-inner">
+    <div class="logo"><span class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg></span>Homeowner Copilot</div>
+    <div class="nav-links">
+      <a href="#how-it-works">How it works</a>
+      <a href="#value">Why it helps</a>
+    </div>
+    <button class="nav-cta" type="button">Set up your home</button>
+  </div></nav>
+
+  <div class="hero">
+    <div class="hero-content">
+      <p class="eyebrow">For new homeowners</p>
+      <h1>Know what your home needs, before it becomes a problem.</h1>
+      <p class="sub">A maintenance plan built from your actual home — what to check, when, and why it matters — explained like a contractor you trust, not a spec sheet.</p>
+      <button class="cta" type="button">Set up your home</button>
+      <p class="credit">Photo by <a href="https://unsplash.com/@pbanselme" target="_blank" rel="noopener">Bailey Anselme</a> on Unsplash</p>
+    </div>
+  </div>
+
+  <section id="how-it-works">
+    <div class="inner">
+      <p class="section-eyebrow">How it works</p>
+      <h2 class="section-title">Three steps to a home that runs itself</h2>
+      <p class="section-sub">No spreadsheets, no guesswork — just tell us what you have and we take it from there.</p>
+
+      <div class="step">
+        <div class="step-text">
+          <span class="step-num">1</span>
+          <h3>Tell us what you have</h3>
+          <p>Select your house type and the systems, appliances, and safety equipment you actually own. It takes under two minutes — no exact dates or model numbers required.</p>
+        </div>
+        <div class="step-preview">
+          <div class="preview-frame">
+            <span class="preview-chip on">HVAC</span>
+            <span class="preview-chip on">Water heater</span>
+            <span class="preview-chip">Furnace / boiler</span>
+            <span class="preview-chip on">Electrical panel</span>
+            <span class="preview-chip">Sump pump</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-text">
+          <span class="step-num">2</span>
+          <h3>Get a real dashboard, not a checklist</h3>
+          <p>Every appliance is scored red, yellow, or green based on what actually needs attention — so you know exactly where to focus first, without digging through a wall of tasks.</p>
+        </div>
+        <div class="step-preview">
+          <div class="preview-frame">
+            <div class="preview-card danger">
+              <span class="preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5Z"/></svg></span>
+              <p class="preview-title">Water heater</p>
+              <span class="preview-pill danger">Overdue</span>
+            </div>
+            <div class="preview-card amber">
+              <span class="preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg></span>
+              <p class="preview-title">Electrical panel</p>
+              <span class="preview-pill amber">Needs info</span>
+            </div>
+            <div class="preview-card good">
+              <span class="preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg></span>
+              <p class="preview-title">Roof</p>
+              <span class="preview-pill good">All good</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-text">
+          <span class="step-num">3</span>
+          <h3>Understand the why, not just the what</h3>
+          <p>Every appliance comes with plain-language guidance — what it does, how long it should last, and what actually matters — written like a contractor explaining it to a customer they trust.</p>
+        </div>
+        <div class="step-preview">
+          <div class="preview-frame">
+            <div class="preview-body">
+              <p><strong style="color:var(--ink); font-size:13px;">Water heater</strong><br/><br/>This is one appliance where I'd ask you to take the maintenance seriously, not just as a formality. The pressure relief valve is a genuine safety component, and I'd test it every year without fail...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="value">
+    <div class="inner">
+      <p class="section-eyebrow">Why it helps</p>
+      <h2 class="section-title" style="margin-bottom:56px;">Built around how busy homeowners actually think</h2>
+      <div class="grid4">
+        <div class="card">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg></div>
+          <h3>Built for your home</h3>
+          <p>A checklist specific to what you actually own, not a generic list.</p>
+        </div>
+        <div class="card">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3Z"/><path d="M9 12l2 2 4-4"/></svg></div>
+          <h3>Know what matters</h3>
+          <p>Real urgency, not a flat list — so you know where to focus first.</p>
+        </div>
+        <div class="card">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H8l-4 4V4Z"/></svg></div>
+          <h3>Explained plainly</h3>
+          <p>No jargon — plain-language guidance on what to watch for.</p>
+        </div>
+        <div class="card">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20a2 2 0 0 0 4 0M4 17h16l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17Z"/></svg></div>
+          <h3>Timely, not overwhelming</h3>
+          <p>Nudged only when something's due — never buried in tasks.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="inner">
+      <div class="closing">
+        <h2>Get ahead of your home's maintenance.</h2>
+        <p>Set up your home in under two minutes.</p>
+        <button class="cta" type="button">Set up your home</button>
+      </div>
+    </div>
+  </section>
+
+  <footer><p>Homeowner Copilot — built as a demonstration project.</p></footer>
+
+</body>
+</html>
